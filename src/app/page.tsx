@@ -97,6 +97,7 @@ interface FilteredData {
   bySemestre: Record<string, any>;
   byClient: Record<string, any>;
   byCDA: Record<string, any>;
+  clientStats?: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string };
 }
 
 // Filtering is now done server-side via /api/data?agr=...&secteur=...
@@ -1002,7 +1003,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
   );
 }
 
-function ClientSection({ fd }: { fd: FilteredData }) {
+function ClientSection({ fd, clientStats }: { fd: FilteredData; clientStats: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string } }) {
   const clientEntries = Object.entries(fd.byClient)
     .map(([id, v]: [string, any]) => ({ id, ...v }))
     .filter(c => c.id !== '0' && c.id !== 'NaN' && c.count > 0)
@@ -1011,9 +1012,8 @@ function ClientSection({ fd }: { fd: FilteredData }) {
   const top20Clients = clientEntries.slice(0, 20);
   const top10ByRevenue = clientEntries.slice(0, 10);
 
-  const totalClients = clientEntries.length;
-  const totalRedevFromTop10 = top10ByRevenue.reduce((s, c) => s + c.redevTot, 0);
-  const concentrationPct = ((totalRedevFromTop10 / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+  const totalClients = clientStats.totalClientCount;
+  const concentrationPct = clientStats.concentrationPct;
 
   const [clientPage, setClientPage] = useState(1);
   const [clientSearch, setClientSearch] = useState('');
@@ -1035,7 +1035,7 @@ function ClientSection({ fd }: { fd: FilteredData }) {
         <Card className="shadow-md border-l-4 border-l-indigo-500">
           <CardContent className="p-5">
             <p className="text-xs font-medium text-gray-500 uppercase">Nombre de Clients</p>
-            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatFullNumber(totalClients > 0 ? totalClients : clientData.total)}</p>
+            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatFullNumber(totalClients)}</p>
             <p className="text-xs text-gray-400 mt-1">clients uniques</p>
           </CardContent>
         </Card>
@@ -1463,7 +1463,7 @@ export default function DashboardPage() {
       case 'secteur': return <SecteurSection fd={fd} />;
       case 'source': return <SourceSection fd={fd} />;
       case 'finance': return <FinanceSection fd={fd} />;
-      case 'client': return <ClientSection fd={fd} />;
+      case 'client': return <ClientSection fd={fd} clientStats={fd.clientStats || { totalClientCount: 0, totalClientRedevTot: 0, top10ClientRedev: 0, concentrationPct: '0' }} />;
       case 'cda': return <CDASection fd={fd} />;
       default: return <OverviewSection fd={fd} />;
     }

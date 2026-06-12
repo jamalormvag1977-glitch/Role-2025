@@ -91,16 +91,24 @@ export async function GET(request: Request) {
     // Compute aggregations from filtered data
     const agg = computeAggregations(filtered);
 
-    // Keep only top 200 clients to reduce payload
+    // Count total unique clients (excluding invalid IDs)
+    const allClientEntries = Object.entries(agg.byClient)
+      .filter(([k]) => k !== '0' && k !== 'NaN');
+    const totalClientCount = allClientEntries.length;
+    const totalClientRedevTot = allClientEntries.reduce((s, [, v]: [string, any]) => s + (v as any).redevTot, 0);
+
+    // Keep top 50 clients for charts (reduce payload)
     const byClientTop: Record<string, any> = {};
-    const sortedClients = Object.entries(agg.byClient)
-      .filter(([k]) => k !== '0' && k !== 'NaN')
+    const sortedClients = allClientEntries
       .sort(([,a]: [string, any],[,b]: [string, any]) => (b as any).redevTot - (a as any).redevTot);
-    for (const [key, val] of sortedClients.slice(0, 200)) {
+    for (const [key, val] of sortedClients.slice(0, 50)) {
       byClientTop[key] = val;
     }
 
-    // NO rows in response - only aggregations (keeps payload under 4MB for Vercel)
+    // Top 10 clients for concentration metric
+    const top10ClientRedev = sortedClients.slice(0, 10).reduce((s, [, v]: [string, any]) => s + (v as any).redevTot, 0);
+
+    // NO rows in response - only aggregations (keeps payload small for Vercel)
     const responseData = {
       filters: cachedData.filters,
       summary: agg.summary,
@@ -111,6 +119,12 @@ export async function GET(request: Request) {
       bySemestre: agg.bySemestre,
       byClient: byClientTop,
       byCDA: agg.byCDA,
+      clientStats: {
+        totalClientCount,
+        totalClientRedevTot,
+        top10ClientRedev,
+        concentrationPct: ((top10ClientRedev / (agg.summary.totalRedevTot || 1)) * 100).toFixed(1),
+      },
     };
 
     return NextResponse.json(responseData);
