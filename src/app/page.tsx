@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // Types
 interface DashboardData {
@@ -307,6 +308,11 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
     name, volume: Math.round(v.volConsom / 1_000_000), redevable: Math.round(v.redevTot / 1_000_000), clients: Math.round(v.count / 100),
   }));
 
+  // Table data: aggregated by AGR
+  const overviewTableData = Object.entries(fd.byAGR)
+    .map(([name, v]: [string, any]) => ({ name, ...v }))
+    .sort((a, b) => b.redevTot - a.redevTot);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -435,6 +441,50 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tableau détaillé Vue d'ensemble */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Récapitulatif par AGR</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {overviewTableData.map((row: any) => (
+                  <TableRow key={row.name}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+                    <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
+                    <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -500,6 +550,52 @@ function AGRSection({ fd }: { fd: FilteredData }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tableau détaillé AGR */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par AGR</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(fd.byAGR)
+                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+                  .map(([name, v]: [string, any]) => (
+                  <TableRow key={name}>
+                    <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+                    <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
+                    <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -570,6 +666,46 @@ function CultureSection({ fd }: { fd: FilteredData }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tableau détaillé Culture */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Culture</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[350px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(fd.byCult)
+                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+                  .map(([name, v]: [string, any]) => (
+                  <TableRow key={name}>
+                    <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -620,6 +756,46 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                 </div>
               ))}
             </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Tableau détaillé Secteur */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Secteur</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">Secteur</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(fd.bySecteur)
+                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
+                  .map(([name, v]: [string, any]) => (
+                  <TableRow key={name}>
+                    <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </ScrollArea>
         </CardContent>
       </Card>
@@ -682,6 +858,44 @@ function SourceSection({ fd }: { fd: FilteredData }) {
               <Bar dataKey="redevTot" name="Redevance" fill="#10b981" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tableau détaillé Source */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Source</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-semibold">Source</TableHead>
+                <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(fd.bySource)
+                .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
+                .map(([name, v]: [string, any]) => (
+                <TableRow key={name}>
+                  <TableCell className="font-medium">{name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)'}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+                  <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="bg-gray-50 font-bold">
+                <TableCell>Total</TableCell>
+                <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
@@ -776,6 +990,52 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
               <Area type="monotone" dataKey="redevTot" name="Redevance Totale" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.15} strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tableau détaillé Financier */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail Financier par AGR</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[350px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Culture (DH)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. DPH (DH)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
+                  <TableHead className="text-right font-semibold">% Culture</TableHead>
+                  <TableHead className="text-right font-semibold">% DPH</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(fd.byAGR)
+                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+                  .map(([name, v]: [string, any]) => {
+                    const cultPct = ((v.redevCult / (v.redevTot || 1)) * 100).toFixed(1);
+                    const dphPct = ((v.redevDph / (v.redevTot || 1)) * 100).toFixed(1);
+                    return (
+                    <TableRow key={name}>
+                      <TableCell className="font-medium">{name}</TableCell>
+                      <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
+                      <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                      <TableCell className="text-right">{cultPct}%</TableCell>
+                      <TableCell className="text-right">{dphPct}%</TableCell>
+                    </TableRow>
+                  );})}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">{((fd.summary.totalRedevCult / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}%</TableCell>
+                  <TableCell className="text-right">{((fd.summary.totalRedevDph / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}%</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
