@@ -1,0 +1,1222 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import React, { useState, useCallback, useRef } from 'react';
+     4→     4→import {
+     5→     5→  LayoutDashboard, BarChart3, Sprout, MapPin, Droplets, DollarSign,
+     6→     6→  Upload, RefreshCw, ChevronDown, Filter, FileSpreadsheet,
+     7→     7→  TrendingUp, Users, Zap, Menu
+     8→     8→} from 'lucide-react';
+     9→     9→import {
+    10→    10→  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    11→    11→  PieChart, Pie, Cell, AreaChart, Area, RadarChart, PolarGrid,
+    12→    12→  PolarAngleAxis, PolarRadiusAxis, Radar
+    13→    13→} from 'recharts';
+    14→    14→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    15→    15→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    16→    16→import { Button } from '@/components/ui/button';
+    17→    17→import { Badge } from '@/components/ui/badge';
+    18→    18→import { ScrollArea } from '@/components/ui/scroll-area';
+    19→    19→import { Separator } from '@/components/ui/separator';
+    20→    20→import { Skeleton } from '@/components/ui/skeleton';
+    21→    21→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    22→    22→
+    23→    23→// Types
+    24→    24→interface DashboardData {
+    25→    25→  rows: any[];
+    26→    26→  filters: {
+    27→    27→    agr: string[];
+    28→    28→    secteur: string[];
+    29→    29→    source: string[];
+    30→    30→    cult: string[];
+    31→    31→    campagne: string[];
+    32→    32→    semestre: string[];
+    33→    33→  };
+    34→    34→  summary: {
+    35→    35→    totalRows: number;
+    36→    36→    totalVolConsom: number;
+    37→    37→    totalVolFact: number;
+    38→    38→    totalVolVoleau: number;
+    39→    39→    totalRedevCult: number;
+    40→    40→    totalRedevDph: number;
+    41→    41→    totalRedevTot: number;
+    42→    42→  };
+    43→    43→  byAGR: Record<string, any>;
+    44→    44→  byCult: Record<string, any>;
+    45→    45→  bySecteur: Record<string, any>;
+    46→    46→  bySource: Record<string, any>;
+    47→    47→  bySemestre: Record<string, any>;
+    48→    48→  byAGRSemestre: Record<string, Record<string, any>>;
+    49→    49→  byCultAGR: Record<string, Record<string, any>>;
+    50→    50→  bySecteurAGR: Record<string, Record<string, any>>;
+    51→    51→}
+    52→    52→
+    53→    53→const CHART_COLORS = ['#1e40af', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+    54→    54→
+    55→    55→const formatNumber = (n: number) => {
+    56→    56→  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    57→    57→  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+    58→    58→  return n.toFixed(0);
+    59→    59→};
+    60→    60→
+    61→    61→const formatCurrency = (n: number) => {
+    62→    62→  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M DH';
+    63→    63→  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K DH';
+    64→    64→  return n.toFixed(2) + ' DH';
+    65→    65→};
+    66→    66→
+    67→    67→const formatFullNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(Math.round(n));
+    68→    68→
+    69→    69→const NAV_ITEMS = [
+    70→    70→  { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard },
+    71→    71→  { id: 'agr', label: 'Analyse par AGR', icon: BarChart3 },
+    72→    72→  { id: 'culture', label: 'Analyse par Culture', icon: Sprout },
+    73→    73→  { id: 'secteur', label: 'Analyse par Secteur', icon: MapPin },
+    74→    74→  { id: 'source', label: 'Analyse par Source', icon: Droplets },
+    75→    75→  { id: 'finance', label: 'Analyse Financière', icon: DollarSign },
+    76→    76→];
+    77→    77→
+    78→    78→interface FilterState {
+    79→    79→  agr: string;
+    80→    80→  secteur: string;
+    81→    81→  source: string;
+    82→    82→  cult: string;
+    83→    83→  campagne: string;
+    84→    84→  semestre: string;
+    85→    85→}
+    86→    86→
+    87→    87→interface FilteredData {
+    88→    88→  summary: { totalRows: number; totalVolConsom: number; totalVolFact: number; totalVolVoleau: number; totalRedevCult: number; totalRedevDph: number; totalRedevTot: number };
+    89→    89→  byAGR: Record<string, any>;
+    90→    90→  byCult: Record<string, any>;
+    91→    91→  bySecteur: Record<string, any>;
+    92→    92→  bySource: Record<string, any>;
+    93→    93→  bySemestre: Record<string, any>;
+    94→    94→  rows: any[];
+    95→    95→}
+    96→    96→
+    97→    97→function computeFiltered(rows: any[], filters: FilterState): FilteredData {
+    98→    98→  let filtered = rows;
+    99→    99→  if (filters.agr !== 'all') filtered = filtered.filter((r: any) => r.AGR === filters.agr);
+   100→   100→  if (filters.secteur !== 'all') filtered = filtered.filter((r: any) => r.SECTEUR === filters.secteur);
+   101→   101→  if (filters.source !== 'all') filtered = filtered.filter((r: any) => r.SOURCE === filters.source);
+   102→   102→  if (filters.cult !== 'all') filtered = filtered.filter((r: any) => r.CULT === filters.cult);
+   103→   103→  if (filters.campagne !== 'all') filtered = filtered.filter((r: any) => r.CAMPAGNE === filters.campagne);
+   104→   104→  if (filters.semestre !== 'all') filtered = filtered.filter((r: any) => r.SEMESTRE === filters.semestre);
+   105→   105→
+   106→   106→  const summary = { totalRows: filtered.length, totalVolConsom: 0, totalVolFact: 0, totalVolVoleau: 0, totalRedevCult: 0, totalRedevDph: 0, totalRedevTot: 0 };
+   107→   107→  const byAGR: Record<string, any> = {};
+   108→   108→  const byCult: Record<string, any> = {};
+   109→   109→  const bySecteur: Record<string, any> = {};
+   110→   110→  const bySource: Record<string, any> = {};
+   111→   111→  const bySemestre: Record<string, any> = {};
+   112→   112→
+   113→   113→  for (const row of filtered) {
+   114→   114→    summary.totalVolConsom += row.VOL_CONSOM;
+   115→   115→    summary.totalVolFact += row.VOL_FACT;
+   116→   116→    summary.totalVolVoleau += row.VOL_VOLEAU;
+   117→   117→    summary.totalRedevCult += row.REDEV_CULT;
+   118→   118→    summary.totalRedevDph += row.REDEV_DPH;
+   119→   119→    summary.totalRedevTot += row.REDEV_TOT;
+   120→   120→
+   121→   121→    if (!byAGR[row.AGR]) byAGR[row.AGR] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0 };
+   122→   122→    byAGR[row.AGR].volConsom += row.VOL_CONSOM; byAGR[row.AGR].volFact += row.VOL_FACT;
+   123→   123→    byAGR[row.AGR].redevTot += row.REDEV_TOT; byAGR[row.AGR].redevCult += row.REDEV_CULT;
+   124→   124→    byAGR[row.AGR].redevDph += row.REDEV_DPH; byAGR[row.AGR].count += 1;
+   125→   125→
+   126→   126→    if (!byCult[row.CULT]) byCult[row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+   127→   127→    byCult[row.CULT].volConsom += row.VOL_CONSOM; byCult[row.CULT].volFact += row.VOL_FACT;
+   128→   128→    byCult[row.CULT].redevTot += row.REDEV_TOT; byCult[row.CULT].count += 1;
+   129→   129→
+   130→   130→    if (!bySecteur[row.SECTEUR]) bySecteur[row.SECTEUR] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+   131→   131→    bySecteur[row.SECTEUR].volConsom += row.VOL_CONSOM; bySecteur[row.SECTEUR].volFact += row.VOL_FACT;
+   132→   132→    bySecteur[row.SECTEUR].redevTot += row.REDEV_TOT; bySecteur[row.SECTEUR].count += 1;
+   133→   133→
+   134→   134→    if (!bySource[row.SOURCE]) bySource[row.SOURCE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+   135→   135→    bySource[row.SOURCE].volConsom += row.VOL_CONSOM; bySource[row.SOURCE].volFact += row.VOL_FACT;
+   136→   136→    bySource[row.SOURCE].redevTot += row.REDEV_TOT; bySource[row.SOURCE].count += 1;
+   137→   137→
+   138→   138→    if (!bySemestre[row.SEMESTRE]) bySemestre[row.SEMESTRE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+   139→   139→    bySemestre[row.SEMESTRE].volConsom += row.VOL_CONSOM; bySemestre[row.SEMESTRE].volFact += row.VOL_FACT;
+   140→   140→    bySemestre[row.SEMESTRE].redevTot += row.REDEV_TOT; bySemestre[row.SEMESTRE].count += 1;
+   141→   141→  }
+   142→   142→  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, rows: filtered };
+   143→   143→}
+   144→   144→
+   145→   145→// --- Extracted Components (outside render) ---
+   146→   146→
+   147→   147→function SidebarComponent({
+   148→   148→  sidebarOpen,
+   149→   149→  setSidebarOpen,
+   150→   150→  activeSection,
+   151→   151→  setActiveSection,
+   152→   152→  uploading,
+   153→   153→  uploadMessage,
+   154→   154→  onUploadClick,
+   155→   155→  fd,
+   156→   156→}: {
+   157→   157→  sidebarOpen: boolean;
+   158→   158→  setSidebarOpen: (v: boolean) => void;
+   159→   159→  activeSection: string;
+   160→   160→  setActiveSection: (v: string) => void;
+   161→   161→  uploading: boolean;
+   162→   162→  uploadMessage: string;
+   163→   163→  onUploadClick: () => void;
+   164→   164→  fd: FilteredData | null;
+   165→   165→}) {
+   166→   166→  return (
+   167→   167→    <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-gradient-to-b from-[#0f2744] to-[#1e3a5f] text-white flex flex-col transition-all duration-300 flex-shrink-0 relative`}>
+   168→   168→      <div className="p-4 flex items-center gap-3 border-b border-blue-700/30">
+   169→   169→        <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+   170→   170→          <FileSpreadsheet className="h-5 w-5 text-white" />
+   171→   171→        </div>
+   172→   172→        {sidebarOpen && (
+   173→   173→          <div className="overflow-hidden">
+   174→   174→            <h1 className="text-sm font-bold leading-tight whitespace-nowrap">Rôle Exercice</h1>
+   175→   175→            <p className="text-xs text-blue-300 whitespace-nowrap">Dashboard 2025</p>
+   176→   176→          </div>
+   177→   177→        )}
+   178→   178→      </div>
+   179→   179→
+   180→   180→      <div className="p-3">
+   181→   181→        <button
+   182→   182→          onClick={onUploadClick}
+   183→   183→          disabled={uploading}
+   184→   184→          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors text-sm font-semibold disabled:opacity-50 shadow-lg shadow-emerald-600/20"
+   185→   185→        >
+   186→   186→          {uploading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+   187→   187→          {sidebarOpen && <span>{uploading ? 'Chargement...' : 'Charger Excel'}</span>}
+   188→   188→        </button>
+   189→   189→        {uploadMessage && sidebarOpen && (
+   190→   190→          <p className={`text-xs mt-2 ${uploadMessage.includes('succès') ? 'text-green-400' : 'text-red-400'}`}>
+   191→   191→            {uploadMessage}
+   192→   192→          </p>
+   193→   193→        )}
+   194→   194→      </div>
+   195→   195→
+   196→   196→      <Separator className="bg-blue-700/30 mx-3" />
+   197→   197→
+   198→   198→      <nav className="flex-1 p-2 space-y-1">
+   199→   199→        {NAV_ITEMS.map(item => {
+   200→   200→          const Icon = item.icon;
+   201→   201→          const isActive = activeSection === item.id;
+   202→   202→          return (
+   203→   203→            <button
+   204→   204→              key={item.id}
+   205→   205→              onClick={() => setActiveSection(item.id)}
+   206→   206→              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+   207→   207→                isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-blue-200 hover:bg-blue-800/50 hover:text-white'
+   208→   208→              }`}
+   209→   209→            >
+   210→   210→              <Icon className="h-5 w-5 flex-shrink-0" />
+   211→   211→              {sidebarOpen && <span className="whitespace-nowrap">{item.label}</span>}
+   212→   212→            </button>
+   213→   213→          );
+   214→   214→        })}
+   215→   215→      </nav>
+   216→   216→
+   217→   217→      <button
+   218→   218→        onClick={() => setSidebarOpen(!sidebarOpen)}
+   219→   219→        className="absolute -right-3 top-20 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-500 transition-colors z-10"
+   220→   220→      >
+   221→   221→        {sidebarOpen ? <ChevronDown className="h-3 w-3 rotate-90" /> : <ChevronDown className="h-3 w-3 -rotate-90" />}
+   222→   222→      </button>
+   223→   223→
+   224→   224→      {sidebarOpen && fd && (
+   225→   225→        <div className="p-4 border-t border-blue-700/30">
+   226→   226→          <div className="text-xs text-blue-300">
+   227→   227→            <p>Enregistrements: <span className="text-white font-semibold">{formatFullNumber(fd.summary.totalRows)}</span></p>
+   228→   228→            <p>Dernière MAJ: <span className="text-white">{new Date().toLocaleDateString('fr-FR')}</span></p>
+   229→   229→          </div>
+   230→   230→        </div>
+   231→   231→      )}
+   232→   232→    </aside>
+   233→   233→  );
+   234→   234→}
+   235→   235→
+   236→   236→function FilterBarComponent({ filters, data, updateFilter, resetFilters }: {
+   237→   237→  filters: FilterState;
+   238→   238→  data: DashboardData;
+   239→   239→  updateFilter: (key: string, value: string) => void;
+   240→   240→  resetFilters: () => void;
+   241→   241→}) {
+   242→   242→  return (
+   243→   243→    <div className="flex flex-wrap gap-3 items-center bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+   244→   244→      <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+   245→   245→        <Filter className="h-4 w-4" />
+   246→   246→        <span>Filtres:</span>
+   247→   247→      </div>
+   248→   248→      <Select value={filters.agr} onValueChange={v => updateFilter('agr', v)}>
+   249→   249→        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="AGR" /></SelectTrigger>
+   250→   250→        <SelectContent>
+   251→   251→          <SelectItem value="all">Tous AGR</SelectItem>
+   252→   252→          {data.filters.agr.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+   253→   253→        </SelectContent>
+   254→   254→      </Select>
+   255→   255→      <Select value={filters.secteur} onValueChange={v => updateFilter('secteur', v)}>
+   256→   256→        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Secteur" /></SelectTrigger>
+   257→   257→        <SelectContent>
+   258→   258→          <SelectItem value="all">Tous Secteurs</SelectItem>
+   259→   259→          {data.filters.secteur.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+   260→   260→        </SelectContent>
+   261→   261→      </Select>
+   262→   262→      <Select value={filters.source} onValueChange={v => updateFilter('source', v)}>
+   263→   263→        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
+   264→   264→        <SelectContent>
+   265→   265→          <SelectItem value="all">Toutes Sources</SelectItem>
+   266→   266→          {data.filters.source.map(s => <SelectItem key={s} value={s}>{s === 'R' ? 'Surface (R)' : s === 'PP' ? 'Pompage (PP)' : s}</SelectItem>)}
+   267→   267→        </SelectContent>
+   268→   268→      </Select>
+   269→   269→      <Select value={filters.cult} onValueChange={v => updateFilter('cult', v)}>
+   270→   270→        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Culture" /></SelectTrigger>
+   271→   271→        <SelectContent>
+   272→   272→          <SelectItem value="all">Toutes Cultures</SelectItem>
+   273→   273→          {data.filters.cult.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+   274→   274→        </SelectContent>
+   275→   275→      </Select>
+   276→   276→      <Select value={filters.semestre} onValueChange={v => updateFilter('semestre', v)}>
+   277→   277→        <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Semestre" /></SelectTrigger>
+   278→   278→        <SelectContent>
+   279→   279→          <SelectItem value="all">Tous</SelectItem>
+   280→   280→          {data.filters.semestre.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+   281→   281→        </SelectContent>
+   282→   282→      </Select>
+   283→   283→      <Select value={filters.campagne} onValueChange={v => updateFilter('campagne', v)}>
+   284→   284→        <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue placeholder="Campagne" /></SelectTrigger>
+   285→   285→        <SelectContent>
+   286→   286→          <SelectItem value="all">Toutes Campagnes</SelectItem>
+   287→   287→          {data.filters.campagne.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+   288→   288→        </SelectContent>
+   289→   289→      </Select>
+   290→   290→      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={resetFilters}>
+   291→   291→        Réinitialiser
+   292→   292→      </Button>
+   293→   293→    </div>
+   294→   294→  );
+   295→   295→}
+   296→   296→
+   297→   297→function OverviewSection({ fd }: { fd: FilteredData }) {
+   298→   298→  const agrChartData = Object.entries(fd.byAGR).map(([name, v]: [string, any]) => ({
+   299→   299→    name, volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot,
+   300→   300→  }));
+   301→   301→  const semestreChartData = Object.entries(fd.bySemestre).map(([name, v]: [string, any]) => ({
+   302→   302→    name, volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot,
+   303→   303→  }));
+   304→   304→  const topCulturesByRevenue = Object.entries(fd.byCult)
+   305→   305→    .map(([name, v]: [string, any]) => ({ name, value: v.redevTot }))
+   306→   306→    .sort((a, b) => b.value - a.value).slice(0, 8);
+   307→   307→  const agrRadarData = Object.entries(fd.byAGR).map(([name, v]: [string, any]) => ({
+   308→   308→    name, volume: Math.round(v.volConsom / 1_000_000), redevable: Math.round(v.redevTot / 1_000_000), clients: Math.round(v.count / 100),
+   309→   309→  }));
+   310→   310→
+   311→   311→  // Table data: aggregated by AGR
+   312→   312→  const overviewTableData = Object.entries(fd.byAGR)
+   313→   313→    .map(([name, v]: [string, any]) => ({ name, ...v }))
+   314→   314→    .sort((a, b) => b.redevTot - a.redevTot);
+   315→   315→
+   316→   316→  return (
+   317→   317→    <div className="space-y-6">
+   318→   318→      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+   319→   319→        <Card className="border-l-4 border-l-blue-600 shadow-md hover:shadow-lg transition-shadow">
+   320→   320→          <CardContent className="p-5">
+   321→   321→            <div className="flex items-center justify-between">
+   322→   322→              <div>
+   323→   323→                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Volume Consommé</p>
+   324→   324→                <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(fd.summary.totalVolConsom)}</p>
+   325→   325→                <p className="text-xs text-gray-400 mt-1">m³ total</p>
+   326→   326→              </div>
+   327→   327→              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+   328→   328→                <Droplets className="h-6 w-6 text-blue-600" />
+   329→   329→              </div>
+   330→   330→            </div>
+   331→   331→          </CardContent>
+   332→   332→        </Card>
+   333→   333→        <Card className="border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-shadow">
+   334→   334→          <CardContent className="p-5">
+   335→   335→            <div className="flex items-center justify-between">
+   336→   336→              <div>
+   337→   337→                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Volume Facturé</p>
+   338→   338→                <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(fd.summary.totalVolFact)}</p>
+   339→   339→                <p className="text-xs text-gray-400 mt-1">m³ total</p>
+   340→   340→              </div>
+   341→   341→              <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+   342→   342→                <TrendingUp className="h-6 w-6 text-amber-600" />
+   343→   343→              </div>
+   344→   344→            </div>
+   345→   345→          </CardContent>
+   346→   346→        </Card>
+   347→   347→        <Card className="border-l-4 border-l-emerald-500 shadow-md hover:shadow-lg transition-shadow">
+   348→   348→          <CardContent className="p-5">
+   349→   349→            <div className="flex items-center justify-between">
+   350→   350→              <div>
+   351→   351→                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Redevance Totale</p>
+   352→   352→                <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(fd.summary.totalRedevTot)}</p>
+   353→   353→                <p className="text-xs text-gray-400 mt-1">Dirhams</p>
+   354→   354→              </div>
+   355→   355→              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+   356→   356→                <DollarSign className="h-6 w-6 text-emerald-600" />
+   357→   357→              </div>
+   358→   358→            </div>
+   359→   359→          </CardContent>
+   360→   360→        </Card>
+   361→   361→        <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow">
+   362→   362→          <CardContent className="p-5">
+   363→   363→            <div className="flex items-center justify-between">
+   364→   364→              <div>
+   365→   365→                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre de Clients</p>
+   366→   366→                <p className="text-2xl font-bold text-gray-900 mt-1">{formatFullNumber(fd.summary.totalRows)}</p>
+   367→   367→                <p className="text-xs text-gray-400 mt-1">enregistrements</p>
+   368→   368→              </div>
+   369→   369→              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+   370→   370→                <Users className="h-6 w-6 text-purple-600" />
+   371→   371→              </div>
+   372→   372→            </div>
+   373→   373→          </CardContent>
+   374→   374→        </Card>
+   375→   375→      </div>
+   376→   376→
+   377→   377→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   378→   378→        <Card className="shadow-md">
+   379→   379→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Volumes par AGR</CardTitle></CardHeader>
+   380→   380→          <CardContent>
+   381→   381→            <ResponsiveContainer width="100%" height={300}>
+   382→   382→              <BarChart data={agrChartData}>
+   383→   383→                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   384→   384→                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   385→   385→                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatNumber(v)} />
+   386→   386→                <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+   387→   387→                <Legend />
+   388→   388→                <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} />
+   389→   389→                <Bar dataKey="volFact" name="Volume Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
+   390→   390→              </BarChart>
+   391→   391→            </ResponsiveContainer>
+   392→   392→          </CardContent>
+   393→   393→        </Card>
+   394→   394→        <Card className="shadow-md">
+   395→   395→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Redevances par Semestre</CardTitle></CardHeader>
+   396→   396→          <CardContent>
+   397→   397→            <ResponsiveContainer width="100%" height={300}>
+   398→   398→              <BarChart data={semestreChartData}>
+   399→   399→                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   400→   400→                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   401→   401→                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatNumber(v)} />
+   402→   402→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   403→   403→                <Legend />
+   404→   404→                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+   405→   405→              </BarChart>
+   406→   406→            </ResponsiveContainer>
+   407→   407→          </CardContent>
+   408→   408→        </Card>
+   409→   409→      </div>
+   410→   410→
+   411→   411→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   412→   412→        <Card className="shadow-md">
+   413→   413→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Répartition par Culture (Top 8)</CardTitle></CardHeader>
+   414→   414→          <CardContent>
+   415→   415→            <ResponsiveContainer width="100%" height={300}>
+   416→   416→              <PieChart>
+   417→   417→                <Pie data={topCulturesByRevenue} cx="50%" cy="50%" innerRadius={60} outerRadius={110} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#666', strokeWidth: 1 }}>
+   418→   418→                  {topCulturesByRevenue.map((_, index) => (
+   419→   419→                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+   420→   420→                  ))}
+   421→   421→                </Pie>
+   422→   422→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   423→   423→              </PieChart>
+   424→   424→            </ResponsiveContainer>
+   425→   425→          </CardContent>
+   426→   426→        </Card>
+   427→   427→        <Card className="shadow-md">
+   428→   428→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Radar Comparatif AGR</CardTitle></CardHeader>
+   429→   429→          <CardContent>
+   430→   430→            <ResponsiveContainer width="100%" height={300}>
+   431→   431→              <RadarChart data={agrRadarData}>
+   432→   432→                <PolarGrid />
+   433→   433→                <PolarAngleAxis dataKey="name" tick={{ fontSize: 12 }} />
+   434→   434→                <PolarRadiusAxis tick={{ fontSize: 10 }} />
+   435→   435→                <Radar name="Volume (M m³)" dataKey="volume" stroke="#1e40af" fill="#1e40af" fillOpacity={0.2} />
+   436→   436→                <Radar name="Redevable (M DH)" dataKey="redevable" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} />
+   437→   437→                <Legend />
+   438→   438→                <Tooltip />
+   439→   439→              </RadarChart>
+   440→   440→            </ResponsiveContainer>
+   441→   441→          </CardContent>
+   442→   442→        </Card>
+   443→   443→      </div>
+   444→   444→
+   445→   445→      {/* Tableau détaillé Vue d'ensemble */}
+   446→   446→      <Card className="shadow-md">
+   447→   447→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Récapitulatif par AGR</CardTitle></CardHeader>
+   448→   448→        <CardContent>
+   449→   449→          <ScrollArea className="h-[300px]">
+   450→   450→            <Table>
+   451→   451→              <TableHeader>
+   452→   452→                <TableRow className="bg-gray-50">
+   453→   453→                  <TableHead className="font-semibold">AGR</TableHead>
+   454→   454→                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+   455→   455→                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+   456→   456→                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+   457→   457→                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+   458→   458→                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+   459→   459→                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+   460→   460→                </TableRow>
+   461→   461→              </TableHeader>
+   462→   462→              <TableBody>
+   463→   463→                {overviewTableData.map((row: any) => (
+   464→   464→                  <TableRow key={row.name}>
+   465→   465→                    <TableCell className="font-medium">{row.name}</TableCell>
+   466→   466→                    <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+   467→   467→                    <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+   468→   468→                    <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+   469→   469→                    <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
+   470→   470→                    <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
+   471→   471→                    <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+   472→   472→                  </TableRow>
+   473→   473→                ))}
+   474→   474→                <TableRow className="bg-gray-50 font-bold">
+   475→   475→                  <TableCell>Total</TableCell>
+   476→   476→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+   477→   477→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+   478→   478→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+   479→   479→                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+   480→   480→                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+   481→   481→                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+   482→   482→                </TableRow>
+   483→   483→              </TableBody>
+   484→   484→            </Table>
+   485→   485→          </ScrollArea>
+   486→   486→        </CardContent>
+   487→   487→      </Card>
+   488→   488→    </div>
+   489→   489→  );
+   490→   490→}
+   491→   491→
+   492→   492→function AGRSection({ fd }: { fd: FilteredData }) {
+   493→   493→  const agrChartData = Object.entries(fd.byAGR).map(([name, v]: [string, any]) => ({
+   494→   494→    name, volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot,
+   495→   495→  }));
+   496→   496→
+   497→   497→  return (
+   498→   498→    <div className="space-y-6">
+   499→   499→      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+   500→   500→        {Object.entries(fd.byAGR).map(([name, v]: [string, any]) => (
+   501→   501→          <Card key={name} className="shadow-md hover:shadow-lg transition-shadow">
+   502→   502→            <CardContent className="p-4">
+   503→   503→              <div className="flex items-center gap-3 mb-3">
+   504→   504→                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+   505→   505→                  <BarChart3 className="h-5 w-5 text-blue-700" />
+   506→   506→                </div>
+   507→   507→                <div>
+   508→   508→                  <p className="text-sm font-bold text-gray-900">{name}</p>
+   509→   509→                  <Badge variant="secondary" className="text-xs">{v.count} enr.</Badge>
+   510→   510→                </div>
+   511→   511→              </div>
+   512→   512→              <div className="space-y-2 text-xs">
+   513→   513→                <div className="flex justify-between"><span className="text-gray-500">Vol. Consommé</span><span className="font-semibold">{formatNumber(v.volConsom)}</span></div>
+   514→   514→                <div className="flex justify-between"><span className="text-gray-500">Vol. Facturé</span><span className="font-semibold">{formatNumber(v.volFact)}</span></div>
+   515→   515→                <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-semibold text-emerald-600">{formatCurrency(v.redevTot)}</span></div>
+   516→   516→              </div>
+   517→   517→            </CardContent>
+   518→   518→          </Card>
+   519→   519→        ))}
+   520→   520→      </div>
+   521→   521→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   522→   522→        <Card className="shadow-md">
+   523→   523→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Comparaison Volumes par AGR</CardTitle></CardHeader>
+   524→   524→          <CardContent>
+   525→   525→            <ResponsiveContainer width="100%" height={350}>
+   526→   526→              <BarChart data={agrChartData} layout="vertical">
+   527→   527→                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   528→   528→                <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   529→   529→                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={100} />
+   530→   530→                <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+   531→   531→                <Legend />
+   532→   532→                <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[0,4,4,0]} />
+   533→   533→                <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[0,4,4,0]} />
+   534→   534→              </BarChart>
+   535→   535→            </ResponsiveContainer>
+   536→   536→          </CardContent>
+   537→   537→        </Card>
+   538→   538→        <Card className="shadow-md">
+   539→   539→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Redevances par AGR</CardTitle></CardHeader>
+   540→   540→          <CardContent>
+   541→   541→            <ResponsiveContainer width="100%" height={350}>
+   542→   542→              <BarChart data={agrChartData}>
+   543→   543→                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   544→   544→                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   545→   545→                <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   546→   546→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   547→   547→                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+   548→   548→              </BarChart>
+   549→   549→            </ResponsiveContainer>
+   550→   550→          </CardContent>
+   551→   551→        </Card>
+   552→   552→      </div>
+   553→   553→
+   554→   554→      {/* Tableau détaillé AGR */}
+   555→   555→      <Card className="shadow-md">
+   556→   556→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par AGR</CardTitle></CardHeader>
+   557→   557→        <CardContent>
+   558→   558→          <ScrollArea className="h-[300px]">
+   559→   559→            <Table>
+   560→   560→              <TableHeader>
+   561→   561→                <TableRow className="bg-gray-50">
+   562→   562→                  <TableHead className="font-semibold">AGR</TableHead>
+   563→   563→                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+   564→   564→                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+   565→   565→                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+   566→   566→                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+   567→   567→                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+   568→   568→                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+   569→   569→                </TableRow>
+   570→   570→              </TableHeader>
+   571→   571→              <TableBody>
+   572→   572→                {Object.entries(fd.byAGR)
+   573→   573→                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+   574→   574→                  .map(([name, v]: [string, any]) => (
+   575→   575→                  <TableRow key={name}>
+   576→   576→                    <TableCell className="font-medium">{name}</TableCell>
+   577→   577→                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+   578→   578→                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+   579→   579→                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+   580→   580→                    <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
+   581→   581→                    <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
+   582→   582→                    <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+   583→   583→                  </TableRow>
+   584→   584→                ))}
+   585→   585→                <TableRow className="bg-gray-50 font-bold">
+   586→   586→                  <TableCell>Total</TableCell>
+   587→   587→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+   588→   588→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+   589→   589→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+   590→   590→                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+   591→   591→                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+   592→   592→                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+   593→   593→                </TableRow>
+   594→   594→              </TableBody>
+   595→   595→            </Table>
+   596→   596→          </ScrollArea>
+   597→   597→        </CardContent>
+   598→   598→      </Card>
+   599→   599→    </div>
+   600→   600→  );
+   601→   601→}
+   602→   602→
+   603→   603→function CultureSection({ fd }: { fd: FilteredData }) {
+   604→   604→  const cultChartData = Object.entries(fd.byCult)
+   605→   605→    .map(([name, v]: [string, any]) => ({ name, volConsom: v.volConsom, redevTot: v.redevTot, count: v.count }))
+   606→   606→    .sort((a, b) => b.volConsom - a.volConsom).slice(0, 15);
+   607→   607→  const topCulturesByRevenue = Object.entries(fd.byCult)
+   608→   608→    .map(([name, v]: [string, any]) => ({ name, value: v.redevTot }))
+   609→   609→    .sort((a, b) => b.value - a.value).slice(0, 8);
+   610→   610→
+   611→   611→  return (
+   612→   612→    <div className="space-y-6">
+   613→   613→      <Card className="shadow-md">
+   614→   614→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 15 Cultures par Volume Consommé</CardTitle></CardHeader>
+   615→   615→        <CardContent>
+   616→   616→          <ResponsiveContainer width="100%" height={400}>
+   617→   617→            <BarChart data={cultChartData}>
+   618→   618→              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   619→   619→              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+   620→   620→              <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   621→   621→              <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+   622→   622→              <Legend />
+   623→   623→              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} />
+   624→   624→              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+   625→   625→            </BarChart>
+   626→   626→          </ResponsiveContainer>
+   627→   627→        </CardContent>
+   628→   628→      </Card>
+   629→   629→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   630→   630→        <Card className="shadow-md">
+   631→   631→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Répartition des Cultures par Redevance</CardTitle></CardHeader>
+   632→   632→          <CardContent>
+   633→   633→            <ResponsiveContainer width="100%" height={350}>
+   634→   634→              <PieChart>
+   635→   635→                <Pie data={topCulturesByRevenue} cx="50%" cy="50%" innerRadius={50} outerRadius={110} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+   636→   636→                  {topCulturesByRevenue.map((_, index) => (
+   637→   637→                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+   638→   638→                  ))}
+   639→   639→                </Pie>
+   640→   640→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   641→   641→              </PieChart>
+   642→   642→            </ResponsiveContainer>
+   643→   643→          </CardContent>
+   644→   644→        </Card>
+   645→   645→        <Card className="shadow-md">
+   646→   646→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail par Culture</CardTitle></CardHeader>
+   647→   647→          <CardContent>
+   648→   648→            <ScrollArea className="h-[350px]">
+   649→   649→              <div className="space-y-2">
+   650→   650→                {Object.entries(fd.byCult)
+   651→   651→                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+   652→   652→                  .map(([name, v]: [string, any]) => (
+   653→   653→                  <div key={name} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors">
+   654→   654→                    <div className="flex items-center gap-2">
+   655→   655→                      <Sprout className="h-4 w-4 text-green-600" />
+   656→   656→                      <span className="text-sm font-medium">{name}</span>
+   657→   657→                    </div>
+   658→   658→                    <div className="text-right text-xs">
+   659→   659→                      <p className="font-semibold text-gray-900">{formatCurrency(v.redevTot)}</p>
+   660→   660→                      <p className="text-gray-400">{v.count} enr.</p>
+   661→   661→                    </div>
+   662→   662→                  </div>
+   663→   663→                ))}
+   664→   664→              </div>
+   665→   665→            </ScrollArea>
+   666→   666→          </CardContent>
+   667→   667→        </Card>
+   668→   668→      </div>
+   669→   669→
+   670→   670→      {/* Tableau détaillé Culture */}
+   671→   671→      <Card className="shadow-md">
+   672→   672→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Culture</CardTitle></CardHeader>
+   673→   673→        <CardContent>
+   674→   674→          <ScrollArea className="h-[350px]">
+   675→   675→            <Table>
+   676→   676→              <TableHeader>
+   677→   677→                <TableRow className="bg-gray-50">
+   678→   678→                  <TableHead className="font-semibold">Culture</TableHead>
+   679→   679→                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+   680→   680→                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+   681→   681→                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+   682→   682→                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+   683→   683→                </TableRow>
+   684→   684→              </TableHeader>
+   685→   685→              <TableBody>
+   686→   686→                {Object.entries(fd.byCult)
+   687→   687→                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+   688→   688→                  .map(([name, v]: [string, any]) => (
+   689→   689→                  <TableRow key={name}>
+   690→   690→                    <TableCell className="font-medium">{name}</TableCell>
+   691→   691→                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+   692→   692→                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+   693→   693→                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+   694→   694→                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+   695→   695→                  </TableRow>
+   696→   696→                ))}
+   697→   697→                <TableRow className="bg-gray-50 font-bold">
+   698→   698→                  <TableCell>Total</TableCell>
+   699→   699→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+   700→   700→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+   701→   701→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+   702→   702→                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+   703→   703→                </TableRow>
+   704→   704→              </TableBody>
+   705→   705→            </Table>
+   706→   706→          </ScrollArea>
+   707→   707→        </CardContent>
+   708→   708→      </Card>
+   709→   709→    </div>
+   710→   710→  );
+   711→   711→}
+   712→   712→
+   713→   713→function SecteurSection({ fd }: { fd: FilteredData }) {
+   714→   714→  const secteurChartData = Object.entries(fd.bySecteur)
+   715→   715→    .map(([name, v]: [string, any]) => ({ name, volConsom: v.volConsom, redevTot: v.redevTot, count: v.count }))
+   716→   716→    .sort((a, b) => b.volConsom - a.volConsom).slice(0, 20);
+   717→   717→
+   718→   718→  return (
+   719→   719→    <div className="space-y-6">
+   720→   720→      <Card className="shadow-md">
+   721→   721→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 20 Secteurs par Volume</CardTitle></CardHeader>
+   722→   722→        <CardContent>
+   723→   723→          <ResponsiveContainer width="100%" height={450}>
+   724→   724→            <BarChart data={secteurChartData} layout="vertical">
+   725→   725→              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   726→   726→              <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   727→   727→              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={50} />
+   728→   728→              <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+   729→   729→              <Legend />
+   730→   730→              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[0,4,4,0]} />
+   731→   731→              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[0,4,4,0]} />
+   732→   732→            </BarChart>
+   733→   733→          </ResponsiveContainer>
+   734→   734→        </CardContent>
+   735→   735→      </Card>
+   736→   736→      <Card className="shadow-md">
+   737→   737→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail par Secteur</CardTitle></CardHeader>
+   738→   738→        <CardContent>
+   739→   739→          <ScrollArea className="h-[400px]">
+   740→   740→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+   741→   741→              {Object.entries(fd.bySecteur)
+   742→   742→                .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
+   743→   743→                .map(([name, v]: [string, any]) => (
+   744→   744→                <div key={name} className="p-3 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors border border-gray-100">
+   745→   745→                  <div className="flex items-center justify-between mb-2">
+   746→   746→                    <div className="flex items-center gap-2">
+   747→   747→                      <MapPin className="h-4 w-4 text-blue-600" />
+   748→   748→                      <span className="text-sm font-bold">{name}</span>
+   749→   749→                    </div>
+   750→   750→                    <Badge variant="outline" className="text-xs">{v.count}</Badge>
+   751→   751→                  </div>
+   752→   752→                  <div className="text-xs space-y-1">
+   753→   753→                    <div className="flex justify-between"><span className="text-gray-500">Vol. Consommé</span><span className="font-medium">{formatNumber(v.volConsom)}</span></div>
+   754→   754→                    <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-medium text-emerald-600">{formatCurrency(v.redevTot)}</span></div>
+   755→   755→                  </div>
+   756→   756→                </div>
+   757→   757→              ))}
+   758→   758→            </div>
+   759→   759→          </ScrollArea>
+   760→   760→        </CardContent>
+   761→   761→      </Card>
+   762→   762→
+   763→   763→      {/* Tableau détaillé Secteur */}
+   764→   764→      <Card className="shadow-md">
+   765→   765→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Secteur</CardTitle></CardHeader>
+   766→   766→        <CardContent>
+   767→   767→          <ScrollArea className="h-[400px]">
+   768→   768→            <Table>
+   769→   769→              <TableHeader>
+   770→   770→                <TableRow className="bg-gray-50">
+   771→   771→                  <TableHead className="font-semibold">Secteur</TableHead>
+   772→   772→                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+   773→   773→                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+   774→   774→                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+   775→   775→                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+   776→   776→                </TableRow>
+   777→   777→              </TableHeader>
+   778→   778→              <TableBody>
+   779→   779→                {Object.entries(fd.bySecteur)
+   780→   780→                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
+   781→   781→                  .map(([name, v]: [string, any]) => (
+   782→   782→                  <TableRow key={name}>
+   783→   783→                    <TableCell className="font-medium">{name}</TableCell>
+   784→   784→                    <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+   785→   785→                    <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+   786→   786→                    <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+   787→   787→                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+   788→   788→                  </TableRow>
+   789→   789→                ))}
+   790→   790→                <TableRow className="bg-gray-50 font-bold">
+   791→   791→                  <TableCell>Total</TableCell>
+   792→   792→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+   793→   793→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+   794→   794→                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+   795→   795→                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+   796→   796→                </TableRow>
+   797→   797→              </TableBody>
+   798→   798→            </Table>
+   799→   799→          </ScrollArea>
+   800→   800→        </CardContent>
+   801→   801→      </Card>
+   802→   802→    </div>
+   803→   803→  );
+   804→   804→}
+   805→   805→
+   806→   806→function SourceSection({ fd }: { fd: FilteredData }) {
+   807→   807→  const sourceChartData = Object.entries(fd.bySource).map(([name, v]: [string, any]) => ({
+   808→   808→    name: name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)',
+   809→   809→    volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot, count: v.count,
+   810→   810→    isSurface: name === 'R',
+   811→   811→  }));
+   812→   812→
+   813→   813→  return (
+   814→   814→    <div className="space-y-6">
+   815→   815→      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   816→   816→        {sourceChartData.map((item) => (
+   817→   817→          <Card key={item.name} className="shadow-md">
+   818→   818→            <CardContent className="p-6">
+   819→   819→              <div className="flex items-center gap-4 mb-4">
+   820→   820→                <div className={`w-14 h-14 ${item.isSurface ? 'bg-blue-100' : 'bg-amber-100'} rounded-xl flex items-center justify-center`}>
+   821→   821→                  {item.isSurface ? <Droplets className="h-7 w-7 text-blue-700" /> : <Zap className="h-7 w-7 text-amber-700" />}
+   822→   822→                </div>
+   823→   823→                <div>
+   824→   824→                  <p className="text-lg font-bold text-gray-900">{item.name}</p>
+   825→   825→                  <p className="text-xs text-gray-400">{item.count} enregistrements</p>
+   826→   826→                </div>
+   827→   827→              </div>
+   828→   828→              <div className="space-y-3 text-sm">
+   829→   829→                <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+   830→   830→                  <span className="text-gray-600">Volume Consommé</span>
+   831→   831→                  <span className="font-bold">{formatFullNumber(item.volConsom)} m³</span>
+   832→   832→                </div>
+   833→   833→                <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+   834→   834→                  <span className="text-gray-600">Volume Facturé</span>
+   835→   835→                  <span className="font-bold">{formatFullNumber(item.volFact)} m³</span>
+   836→   836→                </div>
+   837→   837→                <div className="flex justify-between items-center p-2 bg-emerald-50 rounded-lg">
+   838→   838→                  <span className="text-gray-600">Redevance Totale</span>
+   839→   839→                  <span className="font-bold text-emerald-700">{formatCurrency(item.redevTot)}</span>
+   840→   840→                </div>
+   841→   841→              </div>
+   842→   842→            </CardContent>
+   843→   843→          </Card>
+   844→   844→        ))}
+   845→   845→      </div>
+   846→   846→      <Card className="shadow-md">
+   847→   847→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Comparaison Sources d&apos;Eau</CardTitle></CardHeader>
+   848→   848→        <CardContent>
+   849→   849→          <ResponsiveContainer width="100%" height={350}>
+   850→   850→            <BarChart data={sourceChartData}>
+   851→   851→              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   852→   852→              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   853→   853→              <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   854→   854→              <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+   855→   855→              <Legend />
+   856→   856→              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} />
+   857→   857→              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
+   858→   858→              <Bar dataKey="redevTot" name="Redevance" fill="#10b981" radius={[4,4,0,0]} />
+   859→   859→            </BarChart>
+   860→   860→          </ResponsiveContainer>
+   861→   861→        </CardContent>
+   862→   862→      </Card>
+   863→   863→
+   864→   864→      {/* Tableau détaillé Source */}
+   865→   865→      <Card className="shadow-md">
+   866→   866→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Source</CardTitle></CardHeader>
+   867→   867→        <CardContent>
+   868→   868→          <Table>
+   869→   869→            <TableHeader>
+   870→   870→              <TableRow className="bg-gray-50">
+   871→   871→                <TableHead className="font-semibold">Source</TableHead>
+   872→   872→                <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+   873→   873→                <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+   874→   874→                <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+   875→   875→                <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+   876→   876→              </TableRow>
+   877→   877→            </TableHeader>
+   878→   878→            <TableBody>
+   879→   879→              {Object.entries(fd.bySource)
+   880→   880→                .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
+   881→   881→                .map(([name, v]: [string, any]) => (
+   882→   882→                <TableRow key={name}>
+   883→   883→                  <TableCell className="font-medium">{name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)'}</TableCell>
+   884→   884→                  <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
+   885→   885→                  <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
+   886→   886→                  <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
+   887→   887→                  <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(v.redevTot)}</TableCell>
+   888→   888→                </TableRow>
+   889→   889→              ))}
+   890→   890→              <TableRow className="bg-gray-50 font-bold">
+   891→   891→                <TableCell>Total</TableCell>
+   892→   892→                <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+   893→   893→                <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+   894→   894→                <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+   895→   895→                <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+   896→   896→              </TableRow>
+   897→   897→            </TableBody>
+   898→   898→          </Table>
+   899→   899→        </CardContent>
+   900→   900→      </Card>
+   901→   901→    </div>
+   902→   902→  );
+   903→   903→}
+   904→   904→
+   905→   905→function FinanceSection({ fd }: { fd: FilteredData }) {
+   906→   906→  const financialByAGR = Object.entries(fd.byAGR).map(([name, v]: [string, any]) => ({
+   907→   907→    name,
+   908→   908→    redevCult: v.redevCult || v.redevTot * 0.9,
+   909→   909→    redevDph: v.redevDph || v.redevTot * 0.1,
+   910→   910→    redevTot: v.redevTot,
+   911→   911→  }));
+   912→   912→  const semestreChartData = Object.entries(fd.bySemestre).map(([name, v]: [string, any]) => ({
+   913→   913→    name, volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot,
+   914→   914→  }));
+   915→   915→
+   916→   916→  return (
+   917→   917→    <div className="space-y-6">
+   918→   918→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   919→   919→        <Card className="shadow-md border-l-4 border-l-emerald-500">
+   920→   920→          <CardContent className="p-5">
+   921→   921→            <p className="text-xs font-medium text-gray-500 uppercase">Redevance Culture</p>
+   922→   922→            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(fd.summary.totalRedevCult)}</p>
+   923→   923→            <p className="text-xs text-gray-400 mt-1">{((fd.summary.totalRedevCult / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}% du total</p>
+   924→   924→          </CardContent>
+   925→   925→        </Card>
+   926→   926→        <Card className="shadow-md border-l-4 border-l-blue-500">
+   927→   927→          <CardContent className="p-5">
+   928→   928→            <p className="text-xs font-medium text-gray-500 uppercase">Redevance DPH</p>
+   929→   929→            <p className="text-2xl font-bold text-blue-700 mt-1">{formatCurrency(fd.summary.totalRedevDph)}</p>
+   930→   930→            <p className="text-xs text-gray-400 mt-1">{((fd.summary.totalRedevDph / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}% du total</p>
+   931→   931→          </CardContent>
+   932→   932→        </Card>
+   933→   933→        <Card className="shadow-md border-l-4 border-l-purple-500">
+   934→   934→          <CardContent className="p-5">
+   935→   935→            <p className="text-xs font-medium text-gray-500 uppercase">Redevance Totale</p>
+   936→   936→            <p className="text-2xl font-bold text-purple-700 mt-1">{formatCurrency(fd.summary.totalRedevTot)}</p>
+   937→   937→            <p className="text-xs text-gray-400 mt-1">Total combiné</p>
+   938→   938→          </CardContent>
+   939→   939→        </Card>
+   940→   940→      </div>
+   941→   941→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   942→   942→        <Card className="shadow-md">
+   943→   943→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Redevances par AGR (Cult vs DPH)</CardTitle></CardHeader>
+   944→   944→          <CardContent>
+   945→   945→            <ResponsiveContainer width="100%" height={350}>
+   946→   946→              <BarChart data={financialByAGR}>
+   947→   947→                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   948→   948→                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   949→   949→                <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   950→   950→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   951→   951→                <Legend />
+   952→   952→                <Bar dataKey="redevCult" name="Redev. Culture" stackId="a" fill="#10b981" />
+   953→   953→                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[4,4,0,0]} />
+   954→   954→              </BarChart>
+   955→   955→            </ResponsiveContainer>
+   956→   956→          </CardContent>
+   957→   957→        </Card>
+   958→   958→        <Card className="shadow-md">
+   959→   959→          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Répartition Financière Globale</CardTitle></CardHeader>
+   960→   960→          <CardContent>
+   961→   961→            <ResponsiveContainer width="100%" height={350}>
+   962→   962→              <PieChart>
+   963→   963→                <Pie
+   964→   964→                  data={[
+   965→   965→                    { name: 'Redev. Culture', value: fd.summary.totalRedevCult },
+   966→   966→                    { name: 'Redev. DPH', value: fd.summary.totalRedevDph },
+   967→   967→                  ]}
+   968→   968→                  cx="50%" cy="50%" innerRadius={70} outerRadius={120} paddingAngle={3} dataKey="value"
+   969→   969→                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+   970→   970→                >
+   971→   971→                  <Cell fill="#10b981" />
+   972→   972→                  <Cell fill="#3b82f6" />
+   973→   973→                </Pie>
+   974→   974→                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   975→   975→              </PieChart>
+   976→   976→            </ResponsiveContainer>
+   977→   977→          </CardContent>
+   978→   978→        </Card>
+   979→   979→      </div>
+   980→   980→      <Card className="shadow-md">
+   981→   981→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tendance des Redevances par Semestre</CardTitle></CardHeader>
+   982→   982→        <CardContent>
+   983→   983→          <ResponsiveContainer width="100%" height={300}>
+   984→   984→            <AreaChart data={semestreChartData}>
+   985→   985→              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+   986→   986→              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+   987→   987→              <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+   988→   988→              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+   989→   989→              <Legend />
+   990→   990→              <Area type="monotone" dataKey="redevTot" name="Redevance Totale" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.15} strokeWidth={2} />
+   991→   991→            </AreaChart>
+   992→   992→          </ResponsiveContainer>
+   993→   993→        </CardContent>
+   994→   994→      </Card>
+   995→   995→
+   996→   996→      {/* Tableau détaillé Financier */}
+   997→   997→      <Card className="shadow-md">
+   998→   998→        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail Financier par AGR</CardTitle></CardHeader>
+   999→   999→        <CardContent>
+  1000→  1000→          <ScrollArea className="h-[350px]">
+  1001→  1001→            <Table>
+  1002→  1002→              <TableHeader>
+  1003→  1003→                <TableRow className="bg-gray-50">
+  1004→  1004→                  <TableHead className="font-semibold">AGR</TableHead>
+  1005→  1005→                  <TableHead className="text-right font-semibold">Redev. Culture (DH)</TableHead>
+  1006→  1006→                  <TableHead className="text-right font-semibold">Redev. DPH (DH)</TableHead>
+  1007→  1007→                  <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
+  1008→  1008→                  <TableHead className="text-right font-semibold">% Culture</TableHead>
+  1009→  1009→                  <TableHead className="text-right font-semibold">% DPH</TableHead>
+  1010→  1010→                </TableRow>
+  1011→  1011→              </TableHeader>
+  1012→  1012→              <TableBody>
+  1013→  1013→                {Object.entries(fd.byAGR)
+  1014→  1014→                  .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
+  1015→  1015→                  .map(([name, v]: [string, any]) => {
+  1016→  1016→                    const cultPct = ((v.redevCult / (v.redevTot || 1)) * 100).toFixed(1);
+  1017→  1017→                    const dphPct = ((v.redevDph / (v.redevTot || 1)) * 100).toFixed(1);
+  1018→  1018→                    return (
+  1019→  1019→                    <TableRow key={name}>
+  1020→  1020→                      <TableCell className="font-medium">{name}</TableCell>
+  1021→  1021→                      <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
+  1022→  1022→                      <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
+  1023→  1023→                      <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+  1024→  1024→                      <TableCell className="text-right">{cultPct}%</TableCell>
+  1025→  1025→                      <TableCell className="text-right">{dphPct}%</TableCell>
+  1026→  1026→                    </TableRow>
+  1027→  1027→                  );})}
+  1028→  1028→                <TableRow className="bg-gray-50 font-bold">
+  1029→  1029→                  <TableCell>Total</TableCell>
+  1030→  1030→                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+  1031→  1031→                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+  1032→  1032→                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+  1033→  1033→                  <TableCell className="text-right">{((fd.summary.totalRedevCult / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}%</TableCell>
+  1034→  1034→                  <TableCell className="text-right">{((fd.summary.totalRedevDph / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1)}%</TableCell>
+  1035→  1035→                </TableRow>
+  1036→  1036→              </TableBody>
+  1037→  1037→            </Table>
+  1038→  1038→          </ScrollArea>
+  1039→  1039→        </CardContent>
+  1040→  1040→      </Card>
+  1041→  1041→    </div>
+  1042→  1042→  );
+  1043→  1043→}
+  1044→  1044→
+  1045→  1045→// Main component using React.use() for data fetching
+  1046→  1046→export default function DashboardPage() {
+  1047→  1047→  const [data, setData] = useState<DashboardData | null>(null);
+  1048→  1048→  const [loading, setLoading] = useState(true);
+  1049→  1049→  const [activeSection, setActiveSection] = useState('overview');
+  1050→  1050→  const [uploading, setUploading] = useState(false);
+  1051→  1051→  const [uploadMessage, setUploadMessage] = useState('');
+  1052→  1052→  const [sidebarOpen, setSidebarOpen] = useState(true);
+  1053→  1053→  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  1054→  1054→  const fileInputRef = useRef<HTMLInputElement>(null);
+  1055→  1055→  const headerFileInputRef = useRef<HTMLInputElement>(null);
+  1056→  1056→
+  1057→  1057→  const [filters, setFilters] = useState<FilterState>({
+  1058→  1058→    agr: 'all', secteur: 'all', source: 'all', cult: 'all', campagne: 'all', semestre: 'all',
+  1059→  1059→  });
+  1060→  1060→
+  1061→  1061→  const fetchData = useCallback(async () => {
+  1062→  1062→    setLoading(true);
+  1063→  1063→    try {
+  1064→  1064→      const res = await fetch('/api/data');
+  1065→  1065→      const json = await res.json();
+  1066→  1066→      setData(json);
+  1067→  1067→    } catch (err) {
+  1068→  1068→      console.error('Error fetching data:', err);
+  1069→  1069→    }
+  1070→  1070→    setLoading(false);
+  1071→  1071→  }, []);
+  1072→  1072→
+  1073→  1073→  React.useEffect(() => {
+  1074→  1074→    fetchData();
+  1075→  1075→  }, [fetchData]);
+  1076→  1076→
+  1077→  1077→  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  1078→  1078→    const file = e.target.files?.[0];
+  1079→  1079→    if (!file) return;
+  1080→  1080→    setUploading(true);
+  1081→  1081→    setUploadMessage('');
+  1082→  1082→    const formData = new FormData();
+  1083→  1083→    formData.append('file', file);
+  1084→  1084→    try {
+  1085→  1085→      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  1086→  1086→      const json = await res.json();
+  1087→  1087→      if (json.success) {
+  1088→  1088→        setUploadMessage('Fichier chargé avec succès !');
+  1089→  1089→        await fetchData();
+  1090→  1090→      } else {
+  1091→  1091→        setUploadMessage(json.error || 'Erreur lors du chargement');
+  1092→  1092→      }
+  1093→  1093→    } catch {
+  1094→  1094→      setUploadMessage('Erreur lors du chargement du fichier');
+  1095→  1095→    }
+  1096→  1096→    setUploading(false);
+  1097→  1097→    if (e.target) e.target.value = '';
+  1098→  1098→    setTimeout(() => setUploadMessage(''), 4000);
+  1099→  1099→  }, [fetchData]);
+  1100→  1100→
+  1101→  1101→  const updateFilter = useCallback((key: string, value: string) => {
+  1102→  1102→    setFilters(prev => ({ ...prev, [key]: value }));
+  1103→  1103→  }, []);
+  1104→  1104→
+  1105→  1105→  const resetFilters = useCallback(() => {
+  1106→  1106→    setFilters({ agr: 'all', secteur: 'all', source: 'all', cult: 'all', campagne: 'all', semestre: 'all' });
+  1107→  1107→  }, []);
+  1108→  1108→
+  1109→  1109→  const handleSidebarUploadClick = useCallback(() => {
+  1110→  1110→    fileInputRef.current?.click();
+  1111→  1111→  }, []);
+  1112→  1112→
+  1113→  1113→  const handleHeaderUploadClick = useCallback(() => {
+  1114→  1114→    headerFileInputRef.current?.click();
+  1115→  1115→  }, []);
+  1116→  1116→
+  1117→  1117→  const fd = data ? computeFiltered(data.rows, filters) : null;
+  1118→  1118→
+  1119→  1119→  if (loading || !data || !fd) {
+  1120→  1120→    return (
+  1121→  1121→      <div className="flex h-screen bg-gray-50">
+  1122→  1122→        <div className="w-64 bg-[#1e3a5f] flex-shrink-0 hidden lg:flex flex-col">
+  1123→  1123→          <div className="p-6"><Skeleton className="h-8 w-32 bg-blue-800" /></div>
+  1124→  1124→          {[1,2,3,4,5,6].map(i => (
+  1125→  1125→            <div key={i} className="px-4 py-3"><Skeleton className="h-10 w-full bg-blue-800/50" /></div>
+  1126→  1126→          ))}
+  1127→  1127→        </div>
+  1128→  1128→        <div className="flex-1 p-8">
+  1129→  1129→          <div className="grid grid-cols-4 gap-4 mb-8">
+  1130→  1130→            {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+  1131→  1131→          </div>
+  1132→  1132→          <Skeleton className="h-96 w-full" />
+  1133→  1133→        </div>
+  1134→  1134→      </div>
+  1135→  1135→    );
+  1136→  1136→  }
+  1137→  1137→
+  1138→  1138→  const sectionTitle = NAV_ITEMS.find(i => i.id === activeSection)?.label || 'Dashboard';
+  1139→  1139→
+  1140→  1140→  const renderSection = () => {
+  1141→  1141→    switch (activeSection) {
+  1142→  1142→      case 'overview': return <OverviewSection fd={fd} />;
+  1143→  1143→      case 'agr': return <AGRSection fd={fd} />;
+  1144→  1144→      case 'culture': return <CultureSection fd={fd} />;
+  1145→  1145→      case 'secteur': return <SecteurSection fd={fd} />;
+  1146→  1146→      case 'source': return <SourceSection fd={fd} />;
+  1147→  1147→      case 'finance': return <FinanceSection fd={fd} />;
+  1148→  1148→      default: return <OverviewSection fd={fd} />;
+  1149→  1149→    }
+  1150→  1150→  };
+  1151→  1151→
+  1152→  1152→  return (
+  1153→  1153→    <div className="flex h-screen bg-gray-50 overflow-hidden">
+  1154→  1154→      <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
+  1155→  1155→      <input ref={headerFileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
+  1156→  1156→
+  1157→  1157→      {mobileSidebarOpen && (
+  1158→  1158→        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileSidebarOpen(false)} />
+  1159→  1159→      )}
+  1160→  1160→      <div className={`fixed inset-y-0 left-0 z-50 lg:hidden transform ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300`}>
+  1161→  1161→        <SidebarComponent
+  1162→  1162→          sidebarOpen={sidebarOpen}
+  1163→  1163→          setSidebarOpen={setSidebarOpen}
+  1164→  1164→          activeSection={activeSection}
+  1165→  1165→          setActiveSection={(v) => { setActiveSection(v); setMobileSidebarOpen(false); }}
+  1166→  1166→          uploading={uploading}
+  1167→  1167→          uploadMessage={uploadMessage}
+  1168→  1168→          onUploadClick={handleSidebarUploadClick}
+  1169→  1169→          fd={fd}
+  1170→  1170→        />
+  1171→  1171→      </div>
+  1172→  1172→      <div className="hidden lg:flex">
+  1173→  1173→        <SidebarComponent
+  1174→  1174→          sidebarOpen={sidebarOpen}
+  1175→  1175→          setSidebarOpen={setSidebarOpen}
+  1176→  1176→          activeSection={activeSection}
+  1177→  1177→          setActiveSection={setActiveSection}
+  1178→  1178→          uploading={uploading}
+  1179→  1179→          uploadMessage={uploadMessage}
+  1180→  1180→          onUploadClick={handleSidebarUploadClick}
+  1181→  1181→          fd={fd}
+  1182→  1182→        />
+  1183→  1183→      </div>
+  1184→  1184→
+  1185→  1185→      <div className="flex-1 flex flex-col overflow-hidden">
+  1186→  1186→        <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-sm">
+  1187→  1187→          <div className="flex items-center gap-3">
+  1188→  1188→            <button onClick={() => setMobileSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
+  1189→  1189→              <Menu className="h-5 w-5 text-gray-600" />
+  1190→  1190→            </button>
+  1191→  1191→            <div>
+  1192→  1192→              <h2 className="text-lg font-bold text-gray-900">{sectionTitle}</h2>
+  1193→  1193→              <p className="text-xs text-gray-400">Exercice 2025 — Rôle Définitif</p>
+  1194→  1194→            </div>
+  1195→  1195→          </div>
+  1196→  1196→          <div className="flex items-center gap-3">
+  1197→  1197→            <Button variant="outline" size="sm" onClick={handleHeaderUploadClick} disabled={uploading} className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+  1198→  1198→              {uploading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+  1199→  1199→              <span className="hidden sm:inline">{uploading ? 'Chargement...' : 'Charger Excel'}</span>
+  1200→  1200→            </Button>
+  1201→  1201→            {uploadMessage && (
+  1202→  1202→              <Badge variant={uploadMessage.includes('succès') ? 'default' : 'destructive'} className="text-xs">
+  1203→  1203→                {uploadMessage}
+  1204→  1204→              </Badge>
+  1205→  1205→            )}
+  1206→  1206→            <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+  1207→  1207→              <RefreshCw className="h-4 w-4" />
+  1208→  1208→            </Button>
+  1209→  1209→          </div>
+  1210→  1210→        </header>
+  1211→  1211→
+  1212→  1212→        <main className="flex-1 overflow-auto p-4 lg:p-6">
+  1213→  1213→          <div className="space-y-6">
+  1214→  1214→            <FilterBarComponent filters={filters} data={data} updateFilter={updateFilter} resetFilters={resetFilters} />
+  1215→  1215→            {renderSection()}
+  1216→  1216→          </div>
+  1217→  1217→        </main>
+  1218→  1218→      </div>
+  1219→  1219→    </div>
+  1220→  1220→  );
+  1221→  1221→}
+  1222→  1222→

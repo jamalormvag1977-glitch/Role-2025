@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Sprout, MapPin, Droplets, DollarSign,
   Upload, RefreshCw, ChevronDown, Filter, FileSpreadsheet,
-  TrendingUp, Users, Zap, Menu
+  TrendingUp, Users, Zap, Menu, Building2, UserCheck
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -48,6 +48,8 @@ interface DashboardData {
   byAGRSemestre: Record<string, Record<string, any>>;
   byCultAGR: Record<string, Record<string, any>>;
   bySecteurAGR: Record<string, Record<string, any>>;
+  byClient: Record<string, any>;
+  byCDA: Record<string, any>;
 }
 
 const CHART_COLORS = ['#1e40af', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
@@ -73,6 +75,8 @@ const NAV_ITEMS = [
   { id: 'secteur', label: 'Analyse par Secteur', icon: MapPin },
   { id: 'source', label: 'Analyse par Source', icon: Droplets },
   { id: 'finance', label: 'Analyse Financière', icon: DollarSign },
+  { id: 'client', label: 'Analyse par Client', icon: UserCheck },
+  { id: 'cda', label: 'Analyse par CDA', icon: Building2 },
 ];
 
 interface FilterState {
@@ -91,6 +95,8 @@ interface FilteredData {
   bySecteur: Record<string, any>;
   bySource: Record<string, any>;
   bySemestre: Record<string, any>;
+  byClient: Record<string, any>;
+  byCDA: Record<string, any>;
   rows: any[];
 }
 
@@ -109,6 +115,8 @@ function computeFiltered(rows: any[], filters: FilterState): FilteredData {
   const bySecteur: Record<string, any> = {};
   const bySource: Record<string, any> = {};
   const bySemestre: Record<string, any> = {};
+  const byClient: Record<string, any> = {};
+  const byCDA: Record<string, any> = {};
 
   for (const row of filtered) {
     summary.totalVolConsom += row.VOL_CONSOM;
@@ -138,8 +146,22 @@ function computeFiltered(rows: any[], filters: FilterState): FilteredData {
     if (!bySemestre[row.SEMESTRE]) bySemestre[row.SEMESTRE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
     bySemestre[row.SEMESTRE].volConsom += row.VOL_CONSOM; bySemestre[row.SEMESTRE].volFact += row.VOL_FACT;
     bySemestre[row.SEMESTRE].redevTot += row.REDEV_TOT; bySemestre[row.SEMESTRE].count += 1;
+
+    // byClient
+    const clientKey = String(row.CLIENT);
+    if (!byClient[clientKey]) byClient[clientKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, agr: row.AGR, secteur: row.SECTEUR, cult: row.CULT };
+    byClient[clientKey].volConsom += row.VOL_CONSOM; byClient[clientKey].volFact += row.VOL_FACT;
+    byClient[clientKey].redevTot += row.REDEV_TOT; byClient[clientKey].redevCult += row.REDEV_CULT;
+    byClient[clientKey].redevDph += row.REDEV_DPH; byClient[clientKey].count += 1;
+
+    // byCDA
+    const cdaKey = String(row.CDA);
+    if (!byCDA[cdaKey]) byCDA[cdaKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0 };
+    byCDA[cdaKey].volConsom += row.VOL_CONSOM; byCDA[cdaKey].volFact += row.VOL_FACT;
+    byCDA[cdaKey].redevTot += row.REDEV_TOT; byCDA[cdaKey].redevCult += row.REDEV_CULT;
+    byCDA[cdaKey].redevDph += row.REDEV_DPH; byCDA[cdaKey].count += 1;
   }
-  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, rows: filtered };
+  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, byClient, byCDA, rows: filtered };
 }
 
 // --- Extracted Components (outside render) ---
@@ -1042,6 +1064,309 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
   );
 }
 
+function ClientSection({ fd }: { fd: FilteredData }) {
+  const clientEntries = Object.entries(fd.byClient)
+    .map(([id, v]: [string, any]) => ({ id, ...v }))
+    .filter(c => c.id !== '0' && c.id !== 'NaN' && c.count > 0)
+    .sort((a, b) => b.redevTot - a.redevTot);
+
+  const top20Clients = clientEntries.slice(0, 20);
+  const top10ByRevenue = clientEntries.slice(0, 10);
+
+  const totalClients = clientEntries.length;
+  const totalRedevFromTop10 = top10ByRevenue.reduce((s, c) => s + c.redevTot, 0);
+  const concentrationPct = ((totalRedevFromTop10 / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-md border-l-4 border-l-indigo-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Nombre de Clients</p>
+            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatFullNumber(totalClients)}</p>
+            <p className="text-xs text-gray-400 mt-1">clients uniques</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-emerald-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Redevance Totale</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(fd.summary.totalRedevTot)}</p>
+            <p className="text-xs text-gray-400 mt-1">tous clients confondus</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-amber-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Concentration Top 10</p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{concentrationPct}%</p>
+            <p className="text-xs text-gray-400 mt-1">de la redevance totale</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 20 Clients par Redevance</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={top20Clients.map(c => ({ name: `C-${c.id}`, redevTot: c.redevTot, volConsom: c.volConsom }))} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={70} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Legend />
+                <Bar dataKey="redevTot" name="Redev. Totale" fill="#6366f1" radius={[0,4,4,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 10 Clients - Répartition</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={top10ByRevenue.map(c => ({ name: `C-${c.id}`, value: c.redevTot }))}
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={110} paddingAngle={2} dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {top10ByRevenue.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 20 Clients par Volume</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={clientEntries.slice(0, 20).sort((a, b) => b.volConsom - a.volConsom).map(c => ({ name: `C-${c.id}`, volConsom: c.volConsom, volFact: c.volFact }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+              <Legend />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} />
+              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tableau détaillé Client */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Client</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">N° Client</TableHead>
+                  <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="font-semibold">Secteur</TableHead>
+                  <TableHead className="font-semibold">Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enr.</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clientEntries.map((row: any) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.id}</TableCell>
+                    <TableCell>{row.agr}</TableCell>
+                    <TableCell>{row.secteur}</TableCell>
+                    <TableCell>{row.cult}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+                    <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+                    <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
+                    <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CDASection({ fd }: { fd: FilteredData }) {
+  const cdaEntries = Object.entries(fd.byCDA)
+    .map(([id, v]: [string, any]) => ({ id, ...v }))
+    .filter(c => c.id !== '0' && c.id !== 'NaN' && c.count > 0)
+    .sort((a, b) => b.redevTot - a.redevTot);
+
+  const totalCDA = cdaEntries.length;
+  const avgRedevPerCDA = fd.summary.totalRedevTot / (totalCDA || 1);
+  const avgVolPerCDA = fd.summary.totalVolConsom / (totalCDA || 1);
+
+  const topCDAByRevenue = cdaEntries.slice(0, 10).map(c => ({ name: `CDA-${c.id}`, value: c.redevTot }));
+  const cdaBarChartData = cdaEntries.slice(0, 20);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-md border-l-4 border-l-teal-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Nombre de CDA</p>
+            <p className="text-2xl font-bold text-teal-700 mt-1">{formatFullNumber(totalCDA)}</p>
+            <p className="text-xs text-gray-400 mt-1">CDAs uniques</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-blue-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Vol. Moyen / CDA</p>
+            <p className="text-2xl font-bold text-blue-700 mt-1">{formatNumber(avgVolPerCDA)}</p>
+            <p className="text-xs text-gray-400 mt-1">m³ en moyenne</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-emerald-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Redev. Moyenne / CDA</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(avgRedevPerCDA)}</p>
+            <p className="text-xs text-gray-400 mt-1">DH en moyenne</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-purple-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Redev. Totale</p>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{formatCurrency(fd.summary.totalRedevTot)}</p>
+            <p className="text-xs text-gray-400 mt-1">tous CDA confondus</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 20 CDA par Redevance</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={cdaBarChartData.map(c => ({ name: `CDA-${c.id}`, redevCult: c.redevCult, redevDph: c.redevDph, redevTot: c.redevTot }))} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Legend />
+                <Bar dataKey="redevCult" name="Redev. Culture" stackId="a" fill="#10b981" />
+                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[0,4,4,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Répartition Top 10 CDA par Redevance</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={topCDAByRevenue}
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={110} paddingAngle={2} dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {topCDAByRevenue.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 20 CDA par Volume Consommé</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={cdaEntries.slice(0, 20).sort((a, b) => b.volConsom - a.volConsom).map(c => ({ name: `CDA-${c.id}`, volConsom: c.volConsom, volFact: c.volFact }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: number) => formatFullNumber(v)} />
+              <Legend />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#0d9488" radius={[4,4,0,0]} />
+              <Bar dataKey="volFact" name="Vol. Facturé" fill="#5eead4" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tableau détaillé CDA */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par CDA</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">N° CDA</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% du Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cdaEntries.map((row: any) => {
+                  const pct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium">{row.id}</TableCell>
+                      <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+                      <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+                      <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+                      <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
+                      <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                      <TableCell className="text-right">{pct}%</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-gray-50 font-bold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Main component using React.use() for data fetching
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -1121,7 +1446,7 @@ export default function DashboardPage() {
       <div className="flex h-screen bg-gray-50">
         <div className="w-64 bg-[#1e3a5f] flex-shrink-0 hidden lg:flex flex-col">
           <div className="p-6"><Skeleton className="h-8 w-32 bg-blue-800" /></div>
-          {[1,2,3,4,5,6].map(i => (
+          {[1,2,3,4,5,6,7,8].map(i => (
             <div key={i} className="px-4 py-3"><Skeleton className="h-10 w-full bg-blue-800/50" /></div>
           ))}
         </div>
@@ -1145,6 +1470,8 @@ export default function DashboardPage() {
       case 'secteur': return <SecteurSection fd={fd} />;
       case 'source': return <SourceSection fd={fd} />;
       case 'finance': return <FinanceSection fd={fd} />;
+      case 'client': return <ClientSection fd={fd} />;
+      case 'cda': return <CDASection fd={fd} />;
       default: return <OverviewSection fd={fd} />;
     }
   };

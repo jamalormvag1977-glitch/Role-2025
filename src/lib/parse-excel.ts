@@ -49,6 +49,8 @@ export interface DashboardData {
   byAGRSemestre: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number }>>;
   byCultAGR: Record<string, Record<string, { volConsom: number; redevTot: number }>>;
   bySecteurAGR: Record<string, Record<string, { volConsom: number; redevTot: number }>>;
+  byClient: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; agr: string; secteur: string; cult: string }>;
+  byCDA: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number }>;
 }
 
 const UPLOAD_DIR = '/home/z/my-project/upload';
@@ -117,6 +119,8 @@ export function parseExcelSync(): DashboardData {
   const byAGRSemestre: DashboardData['byAGRSemestre'] = {};
   const byCultAGR: DashboardData['byCultAGR'] = {};
   const bySecteurAGR: DashboardData['bySecteurAGR'] = {};
+  const byClient: DashboardData['byClient'] = {};
+  const byCDA: DashboardData['byCDA'] = {};
 
   for (const row of rows) {
     if (row.AGR) agrSet.add(row.AGR);
@@ -188,6 +192,26 @@ export function parseExcelSync(): DashboardData {
     if (!bySecteurAGR[row.SECTEUR][row.AGR]) bySecteurAGR[row.SECTEUR][row.AGR] = { volConsom: 0, redevTot: 0 };
     bySecteurAGR[row.SECTEUR][row.AGR].volConsom += row.VOL_CONSOM;
     bySecteurAGR[row.SECTEUR][row.AGR].redevTot += row.REDEV_TOT;
+
+    // byClient
+    const clientKey = String(row.CLIENT);
+    if (!byClient[clientKey]) byClient[clientKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, agr: row.AGR, secteur: row.SECTEUR, cult: row.CULT };
+    byClient[clientKey].volConsom += row.VOL_CONSOM;
+    byClient[clientKey].volFact += row.VOL_FACT;
+    byClient[clientKey].redevTot += row.REDEV_TOT;
+    byClient[clientKey].redevCult += row.REDEV_CULT;
+    byClient[clientKey].redevDph += row.REDEV_DPH;
+    byClient[clientKey].count += 1;
+
+    // byCDA
+    const cdaKey = String(row.CDA);
+    if (!byCDA[cdaKey]) byCDA[cdaKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0 };
+    byCDA[cdaKey].volConsom += row.VOL_CONSOM;
+    byCDA[cdaKey].volFact += row.VOL_FACT;
+    byCDA[cdaKey].redevTot += row.REDEV_TOT;
+    byCDA[cdaKey].redevCult += row.REDEV_CULT;
+    byCDA[cdaKey].redevDph += row.REDEV_DPH;
+    byCDA[cdaKey].count += 1;
   }
 
   return {
@@ -217,5 +241,7 @@ export function parseExcelSync(): DashboardData {
     byAGRSemestre,
     byCultAGR,
     bySecteurAGR,
+    byClient,
+    byCDA,
   };
 }
