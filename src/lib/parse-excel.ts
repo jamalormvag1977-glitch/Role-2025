@@ -53,7 +53,9 @@ export interface DashboardData {
   byCDA: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number }>;
 }
 
-const UPLOAD_DIR = '/home/z/my-project/upload';
+// Use process.cwd() so it works both locally and on Vercel
+const UPLOAD_DIR = path.join(process.cwd(), 'upload');
+const DATA_DIR = path.join(process.cwd(), 'data');
 const BLOB_KEY = 'dashboard/data.xlsx';
 
 async function fetchFromBlob(): Promise<Buffer | null> {
@@ -75,15 +77,20 @@ async function fetchFromBlob(): Promise<Buffer | null> {
 function findLocalExcelFile(): string | null {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require('fs');
-  try {
-    const files = fs.readdirSync(UPLOAD_DIR) as string[];
-    const simpleMatch = files.find(f => f === 'data.xlsx');
-    if (simpleMatch) return path.join(UPLOAD_DIR, simpleMatch);
-    const match = files.find((f: string) => f.endsWith('.xlsx'));
-    return match ? path.join(UPLOAD_DIR, match) : null;
-  } catch {
-    return null;
+  // Search in data/ dir first (bundled with repo), then upload/ dir (user uploaded)
+  const searchDirs = [DATA_DIR, UPLOAD_DIR];
+  for (const dir of searchDirs) {
+    try {
+      const files = fs.readdirSync(dir) as string[];
+      const simpleMatch = files.find(f => f === 'data.xlsx');
+      if (simpleMatch) return path.join(dir, simpleMatch);
+      const match = files.find((f: string) => f.endsWith('.xlsx'));
+      if (match) return path.join(dir, match);
+    } catch {
+      // directory doesn't exist, try next
+    }
   }
+  return null;
 }
 
 function parseBuffer(buffer: Buffer): DashboardData {

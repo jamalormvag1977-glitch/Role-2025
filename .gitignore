@@ -37,19 +37,43 @@ yarn-error.log*
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
+
+# logs
 *.log
 dev.log
 dev.out.log
+server.log
+
+# local dev only
+local-*
+.claude
+.z-ai-config
 test
 prompt
 
-server.log
-# Skills directory
+# Upload directory (user-uploaded files at runtime - not for repo)
+/upload/
+
+# Skills directory (internal)
 /skills/
+
+# Tool results (internal)
+/tool-results/
+
+# Database (local dev only)
+/db/
+
+# Examples (internal)
+/examples/
+
+# Caddy (internal)
+Caddyfile
+
+# Prisma (not used in production)
+/prisma/
+
+# Misc internal files
+bun.lock

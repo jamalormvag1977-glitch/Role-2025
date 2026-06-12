@@ -6,5 +6,16 @@
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/data/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/clients/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/upload/route.ts": {
+      "maxDuration": 60
+    }
+  }
 }

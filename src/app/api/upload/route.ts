@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs';
 import path from 'path';
 
 const BLOB_KEY = 'dashboard/data.xlsx';
-const UPLOAD_DIR = '/home/z/my-project/upload';
+const UPLOAD_DIR = path.join(process.cwd(), 'upload');
 
 export async function POST(request: Request) {
   try {
