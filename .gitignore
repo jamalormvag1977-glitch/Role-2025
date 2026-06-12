@@ -75,5 +75,13 @@ Caddyfile
 # Prisma (not used in production)
 /prisma/
 
+# Download (build artifacts)
+/download/
+
+# Worklog (internal)
+worklog.md
+
 # Misc internal files
 bun.lock
+.zscripts/
+mini-services/
