@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { parseExcelSync } from '@/lib/parse-excel';
+import { parseExcel, parseExcelSync } from '@/lib/parse-excel';
 import { isCacheInvalidated, markCacheFresh } from '@/lib/cache';
 
 let cachedData: any = null;
@@ -62,7 +62,12 @@ function computeAggregations(rows: any[]) {
 export async function GET(request: Request) {
   try {
     if (!cachedData || isCacheInvalidated()) {
-      cachedData = parseExcelSync();
+      // Use async version (supports Vercel Blob) with sync fallback (local dev)
+      try {
+        cachedData = await parseExcel();
+      } catch {
+        cachedData = parseExcelSync();
+      }
       markCacheFresh();
     }
 
