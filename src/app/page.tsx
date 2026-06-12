@@ -1077,13 +1077,27 @@ function ClientSection({ fd }: { fd: FilteredData }) {
   const totalRedevFromTop10 = top10ByRevenue.reduce((s, c) => s + c.redevTot, 0);
   const concentrationPct = ((totalRedevFromTop10 / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
 
+  const [clientPage, setClientPage] = useState(1);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientData, setClientData] = useState<{clients: any[], total: number, totalPages: number}>({clients: [], total: 0, totalPages: 0});
+  const [loadingClients, setLoadingClients] = useState(false);
+
+  React.useEffect(() => {
+    setLoadingClients(true);
+    const params = new URLSearchParams({ page: String(clientPage), limit: '100', search: clientSearch });
+    fetch(`/api/clients?${params}`)
+      .then(r => r.json())
+      .then(d => { setClientData(d); setLoadingClients(false); })
+      .catch(() => setLoadingClients(false));
+  }, [clientPage, clientSearch]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="shadow-md border-l-4 border-l-indigo-500">
           <CardContent className="p-5">
             <p className="text-xs font-medium text-gray-500 uppercase">Nombre de Clients</p>
-            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatFullNumber(totalClients)}</p>
+            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatFullNumber(totalClients > 0 ? totalClients : clientData.total)}</p>
             <p className="text-xs text-gray-400 mt-1">clients uniques</p>
           </CardContent>
         </Card>
@@ -1157,55 +1171,82 @@ function ClientSection({ fd }: { fd: FilteredData }) {
         </CardContent>
       </Card>
 
-      {/* Tableau détaillé Client */}
+      {/* Tableau détaillé Client - paginé */}
       <Card className="shadow-md">
-        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Client</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Client</CardTitle>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                value={clientSearch}
+                onChange={e => { setClientSearch(e.target.value); setClientPage(1); }}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <span className="text-xs text-gray-500">{clientData.total} clients</span>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">N° Client</TableHead>
-                  <TableHead className="font-semibold">AGR</TableHead>
-                  <TableHead className="font-semibold">Secteur</TableHead>
-                  <TableHead className="font-semibold">Culture</TableHead>
-                  <TableHead className="text-right font-semibold">Nb Enr.</TableHead>
-                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
-                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
-                  <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
-                  <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
-                  <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clientEntries.map((row: any) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.agr}</TableCell>
-                    <TableCell>{row.secteur}</TableCell>
-                    <TableCell>{row.cult}</TableCell>
-                    <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
-                    <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
-                    <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
-                    <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
-                    <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="bg-gray-50 font-bold">
-                  <TableCell>Total</TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
-                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
-                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
-                  <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
-                  <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
-                  <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            {loadingClients ? (
+              <div className="flex items-center justify-center py-10">
+                <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">N° Client</TableHead>
+                      <TableHead className="font-semibold">AGR</TableHead>
+                      <TableHead className="font-semibold">Secteur</TableHead>
+                      <TableHead className="font-semibold">Culture</TableHead>
+                      <TableHead className="text-right font-semibold">Nb Enr.</TableHead>
+                      <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                      <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                      <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
+                      <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
+                      <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientData.clients.map((row: any) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.id}</TableCell>
+                        <TableCell>{row.agr}</TableCell>
+                        <TableCell>{row.secteur}</TableCell>
+                        <TableCell>{row.cult}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+                        <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
+                        <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-gray-50 font-bold">
+                      <TableCell>Total</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
+                      <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
+                      <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
+                      <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
+                      <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <div className="flex items-center justify-between py-3">
+                  <Button variant="outline" size="sm" onClick={() => setClientPage(p => Math.max(1, p - 1))} disabled={clientPage <= 1}>Précédent</Button>
+                  <span className="text-xs text-gray-500">Page {clientPage} / {clientData.totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setClientPage(p => Math.min(clientData.totalPages, p + 1))} disabled={clientPage >= clientData.totalPages}>Suivant</Button>
+                </div>
+              </>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>
