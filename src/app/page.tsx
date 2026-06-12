@@ -97,72 +97,10 @@ interface FilteredData {
   bySemestre: Record<string, any>;
   byClient: Record<string, any>;
   byCDA: Record<string, any>;
-  rows: any[];
 }
 
-function computeFiltered(rows: any[], filters: FilterState): FilteredData {
-  let filtered = rows;
-  if (filters.agr !== 'all') filtered = filtered.filter((r: any) => r.AGR === filters.agr);
-  if (filters.secteur !== 'all') filtered = filtered.filter((r: any) => r.SECTEUR === filters.secteur);
-  if (filters.source !== 'all') filtered = filtered.filter((r: any) => r.SOURCE === filters.source);
-  if (filters.cult !== 'all') filtered = filtered.filter((r: any) => r.CULT === filters.cult);
-  if (filters.campagne !== 'all') filtered = filtered.filter((r: any) => r.CAMPAGNE === filters.campagne);
-  if (filters.semestre !== 'all') filtered = filtered.filter((r: any) => r.SEMESTRE === filters.semestre);
-
-  const summary = { totalRows: filtered.length, totalVolConsom: 0, totalVolFact: 0, totalVolVoleau: 0, totalRedevCult: 0, totalRedevDph: 0, totalRedevTot: 0 };
-  const byAGR: Record<string, any> = {};
-  const byCult: Record<string, any> = {};
-  const bySecteur: Record<string, any> = {};
-  const bySource: Record<string, any> = {};
-  const bySemestre: Record<string, any> = {};
-  const byClient: Record<string, any> = {};
-  const byCDA: Record<string, any> = {};
-
-  for (const row of filtered) {
-    summary.totalVolConsom += row.VOL_CONSOM;
-    summary.totalVolFact += row.VOL_FACT;
-    summary.totalVolVoleau += row.VOL_VOLEAU;
-    summary.totalRedevCult += row.REDEV_CULT;
-    summary.totalRedevDph += row.REDEV_DPH;
-    summary.totalRedevTot += row.REDEV_TOT;
-
-    if (!byAGR[row.AGR]) byAGR[row.AGR] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0 };
-    byAGR[row.AGR].volConsom += row.VOL_CONSOM; byAGR[row.AGR].volFact += row.VOL_FACT;
-    byAGR[row.AGR].redevTot += row.REDEV_TOT; byAGR[row.AGR].redevCult += row.REDEV_CULT;
-    byAGR[row.AGR].redevDph += row.REDEV_DPH; byAGR[row.AGR].count += 1;
-
-    if (!byCult[row.CULT]) byCult[row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
-    byCult[row.CULT].volConsom += row.VOL_CONSOM; byCult[row.CULT].volFact += row.VOL_FACT;
-    byCult[row.CULT].redevTot += row.REDEV_TOT; byCult[row.CULT].count += 1;
-
-    if (!bySecteur[row.SECTEUR]) bySecteur[row.SECTEUR] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
-    bySecteur[row.SECTEUR].volConsom += row.VOL_CONSOM; bySecteur[row.SECTEUR].volFact += row.VOL_FACT;
-    bySecteur[row.SECTEUR].redevTot += row.REDEV_TOT; bySecteur[row.SECTEUR].count += 1;
-
-    if (!bySource[row.SOURCE]) bySource[row.SOURCE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
-    bySource[row.SOURCE].volConsom += row.VOL_CONSOM; bySource[row.SOURCE].volFact += row.VOL_FACT;
-    bySource[row.SOURCE].redevTot += row.REDEV_TOT; bySource[row.SOURCE].count += 1;
-
-    if (!bySemestre[row.SEMESTRE]) bySemestre[row.SEMESTRE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
-    bySemestre[row.SEMESTRE].volConsom += row.VOL_CONSOM; bySemestre[row.SEMESTRE].volFact += row.VOL_FACT;
-    bySemestre[row.SEMESTRE].redevTot += row.REDEV_TOT; bySemestre[row.SEMESTRE].count += 1;
-
-    // byClient
-    const clientKey = String(row.CLIENT);
-    if (!byClient[clientKey]) byClient[clientKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, agr: row.AGR, secteur: row.SECTEUR, cult: row.CULT };
-    byClient[clientKey].volConsom += row.VOL_CONSOM; byClient[clientKey].volFact += row.VOL_FACT;
-    byClient[clientKey].redevTot += row.REDEV_TOT; byClient[clientKey].redevCult += row.REDEV_CULT;
-    byClient[clientKey].redevDph += row.REDEV_DPH; byClient[clientKey].count += 1;
-
-    // byCDA
-    const cdaKey = String(row.CDA);
-    if (!byCDA[cdaKey]) byCDA[cdaKey] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0 };
-    byCDA[cdaKey].volConsom += row.VOL_CONSOM; byCDA[cdaKey].volFact += row.VOL_FACT;
-    byCDA[cdaKey].redevTot += row.REDEV_TOT; byCDA[cdaKey].redevCult += row.REDEV_CULT;
-    byCDA[cdaKey].redevDph += row.REDEV_DPH; byCDA[cdaKey].count += 1;
-  }
-  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, byClient, byCDA, rows: filtered };
-}
+// Filtering is now done server-side via /api/data?agr=...&secteur=...
+// No need for client-side computeFiltered anymore
 
 // --- Extracted Components (outside render) ---
 
@@ -1408,9 +1346,10 @@ function CDASection({ fd }: { fd: FilteredData }) {
   );
 }
 
-// Main component using React.use() for data fetching
+// Main component - uses server-side filtering via API query params
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [filtersData, setFiltersData] = useState<DashboardData['filters'] | null>(null);
+  const [fd, setFd] = useState<FilteredData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
   const [uploading, setUploading] = useState(false);
@@ -1424,21 +1363,36 @@ export default function DashboardPage() {
     agr: 'all', secteur: 'all', source: 'all', cult: 'all', campagne: 'all', semestre: 'all',
   });
 
-  const fetchData = useCallback(async () => {
+  const fetchFilteredData = useCallback(async (currentFilters: FilterState) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/data');
+      const params = new URLSearchParams();
+      if (currentFilters.agr !== 'all') params.set('agr', currentFilters.agr);
+      if (currentFilters.secteur !== 'all') params.set('secteur', currentFilters.secteur);
+      if (currentFilters.source !== 'all') params.set('source', currentFilters.source);
+      if (currentFilters.cult !== 'all') params.set('cult', currentFilters.cult);
+      if (currentFilters.campagne !== 'all') params.set('campagne', currentFilters.campagne);
+      if (currentFilters.semestre !== 'all') params.set('semestre', currentFilters.semestre);
+      const qs = params.toString();
+      const res = await fetch(`/api/data${qs ? '?' + qs : ''}`);
       const json = await res.json();
-      setData(json);
+      setFd(json);
+      if (json.filters) setFiltersData(json.filters);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
     setLoading(false);
   }, []);
 
+  // Initial load
   React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchFilteredData(filters);
+  }, []);
+
+  // Refetch when filters change
+  React.useEffect(() => {
+    fetchFilteredData(filters);
+  }, [filters, fetchFilteredData]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1452,7 +1406,7 @@ export default function DashboardPage() {
       const json = await res.json();
       if (json.success) {
         setUploadMessage('Fichier chargé avec succès !');
-        await fetchData();
+        await fetchFilteredData(filters);
       } else {
         setUploadMessage(json.error || 'Erreur lors du chargement');
       }
@@ -1462,7 +1416,7 @@ export default function DashboardPage() {
     setUploading(false);
     if (e.target) e.target.value = '';
     setTimeout(() => setUploadMessage(''), 4000);
-  }, [fetchData]);
+  }, [fetchFilteredData, filters]);
 
   const updateFilter = useCallback((key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -1480,9 +1434,7 @@ export default function DashboardPage() {
     headerFileInputRef.current?.click();
   }, []);
 
-  const fd = data ? computeFiltered(data.rows, filters) : null;
-
-  if (loading || !data || !fd) {
+  if (loading || !fd || !filtersData) {
     return (
       <div className="flex h-screen bg-gray-50">
         <div className="w-64 bg-[#1e3a5f] flex-shrink-0 hidden lg:flex flex-col">
@@ -1571,7 +1523,7 @@ export default function DashboardPage() {
                 {uploadMessage}
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => fetchFilteredData(filters)} className="gap-2">
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -1579,7 +1531,7 @@ export default function DashboardPage() {
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <div className="space-y-6">
-            <FilterBarComponent filters={filters} data={data} updateFilter={updateFilter} resetFilters={resetFilters} />
+            <FilterBarComponent filters={filters} data={{ filters: filtersData } as DashboardData} updateFilter={updateFilter} resetFilters={resetFilters} />
             {renderSection()}
           </div>
         </main>
