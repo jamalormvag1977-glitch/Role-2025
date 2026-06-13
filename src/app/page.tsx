@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Sprout, MapPin, Droplets, DollarSign,
   Upload, RefreshCw, ChevronDown, Filter, FileSpreadsheet,
-  TrendingUp, Users, Zap, Menu, Building2, UserCheck
+  TrendingUp, Users, Zap, Menu, Building2, UserCheck, GitMerge
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -75,6 +75,7 @@ const NAV_ITEMS = [
   { id: 'secteur', label: 'Analyse par Secteur', icon: MapPin },
   { id: 'source', label: 'Analyse par Source', icon: Droplets },
   { id: 'finance', label: 'Analyse Financière', icon: DollarSign },
+  { id: 'cross', label: 'Analyse Croisée', icon: GitMerge },
   { id: 'client', label: 'Analyse par Client', icon: UserCheck },
   { id: 'cda', label: 'Analyse par CDA', icon: Building2 },
 ];
@@ -97,6 +98,9 @@ interface FilteredData {
   bySemestre: Record<string, any>;
   byClient: Record<string, any>;
   byCDA: Record<string, any>;
+  byAGRSecteur: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>>;
+  byAGRCult: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>>;
+  bySecteurCult: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>>;
   clientStats?: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string };
 }
 
@@ -1003,6 +1007,381 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
   );
 }
 
+function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
+  // AGR x Secteur cross-data
+  const agrNames = Object.keys(fd.byAGR).sort();
+  const secteurNames = Object.keys(fd.bySecteur).sort();
+  const cultNames = Object.keys(fd.byCult).sort();
+
+  // Flatten cross data for charts: top AGR x Secteur combinations
+  const agrSecteurFlat = Object.entries(fd.byAGRSecteur || {})
+    .flatMap(([agr, secteurs]: [string, any]) =>
+      Object.entries(secteurs as Record<string, any>).map(([secteur, v]: [string, any]) => ({
+        name: `${agr} / ${secteur}`,
+        agr,
+        secteur,
+        volConsom: v.volConsom,
+        redevTot: v.redevTot,
+        count: v.count,
+      }))
+    )
+    .sort((a, b) => b.redevTot - a.redevTot)
+    .slice(0, 25);
+
+  // Flatten AGR x Culture
+  const agrCultFlat = Object.entries(fd.byAGRCult || {})
+    .flatMap(([agr, cults]: [string, any]) =>
+      Object.entries(cults as Record<string, any>).map(([cult, v]: [string, any]) => ({
+        name: `${agr} / ${cult}`,
+        agr,
+        cult,
+        volConsom: v.volConsom,
+        redevTot: v.redevTot,
+        count: v.count,
+      }))
+    )
+    .sort((a, b) => b.redevTot - a.redevTot)
+    .slice(0, 25);
+
+  // Flatten Secteur x Culture
+  const secteurCultFlat = Object.entries(fd.bySecteurCult || {})
+    .flatMap(([secteur, cults]: [string, any]) =>
+      Object.entries(cults as Record<string, any>).map(([cult, v]: [string, any]) => ({
+        name: `${secteur} / ${cult}`,
+        secteur,
+        cult,
+        volConsom: v.volConsom,
+        redevTot: v.redevTot,
+        count: v.count,
+      }))
+    )
+    .sort((a, b) => b.redevTot - a.redevTot)
+    .slice(0, 25);
+
+  // Heat map data for AGR x Secteur (redevTot)
+  const agrSecteurHeatData: { agr: string; secteur: string; value: number }[] = [];
+  for (const agr of agrNames) {
+    for (const secteur of secteurNames) {
+      const val = fd.byAGRSecteur?.[agr]?.[secteur];
+      if (val && val.redevTot > 0) {
+        agrSecteurHeatData.push({ agr, secteur, value: val.redevTot });
+      }
+    }
+  }
+
+  // Heat map data for AGR x Culture (redevTot)
+  const agrCultHeatData: { agr: string; cult: string; value: number }[] = [];
+  for (const agr of agrNames) {
+    for (const cult of cultNames) {
+      const val = fd.byAGRCult?.[agr]?.[cult];
+      if (val && val.redevTot > 0) {
+        agrCultHeatData.push({ agr, cult, value: val.redevTot });
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-md border-l-4 border-l-blue-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Combinaisons AGR × Secteur</p>
+            <p className="text-2xl font-bold text-blue-700 mt-1">{agrSecteurHeatData.length}</p>
+            <p className="text-xs text-gray-400 mt-1">paires actives sur {agrNames.length} AGR × {secteurNames.length} secteurs</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-emerald-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Combinaisons AGR × Culture</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{agrCultHeatData.length}</p>
+            <p className="text-xs text-gray-400 mt-1">paires actives sur {agrNames.length} AGR × {cultNames.length} cultures</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-purple-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Combinaisons Secteur × Culture</p>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{secteurCultFlat.length}</p>
+            <p className="text-xs text-gray-400 mt-1">top combinaisons par redevance</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts: Top 25 AGR x Secteur */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 25 Combinaisons AGR × Secteur par Redevance</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={450}>
+            <BarChart data={agrSecteurFlat} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Legend />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#1e40af" radius={[0,4,4,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#60a5fa" radius={[0,4,4,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Charts: Top 25 AGR x Culture */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 25 Combinaisons AGR × Culture par Redevance</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={450}>
+            <BarChart data={agrCultFlat} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Legend />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#10b981" radius={[0,4,4,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#6ee7b7" radius={[0,4,4,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Charts: Top 25 Secteur x Culture */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Top 25 Combinaisons Secteur × Culture par Redevance</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={450}>
+            <BarChart data={secteurCultFlat} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Legend />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#8b5cf6" radius={[0,4,4,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#c4b5fd" radius={[0,4,4,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Pivot Table: AGR x Secteur */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé AGR × Secteur (Redevance Totale en DH)</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold sticky left-0 bg-gray-50 z-10">AGR \ Secteur</TableHead>
+                  {secteurNames.map(s => (
+                    <TableHead key={s} className="text-right font-semibold text-xs whitespace-nowrap">{s}</TableHead>
+                  ))}
+                  <TableHead className="text-right font-semibold bg-blue-50">Total AGR</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agrNames.map(agr => {
+                  const agrTotal = fd.byAGR[agr]?.redevTot || 0;
+                  return (
+                    <TableRow key={agr}>
+                      <TableCell className="font-medium sticky left-0 bg-white z-10">{agr}</TableCell>
+                      {secteurNames.map(secteur => {
+                        const val = fd.byAGRSecteur?.[agr]?.[secteur];
+                        return (
+                          <TableCell key={secteur} className="text-right text-xs">
+                            {val ? formatCurrency(val.redevTot) : '-'}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-right font-semibold bg-blue-50 text-xs">{formatCurrency(agrTotal)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-gray-100 font-bold">
+                  <TableCell className="sticky left-0 bg-gray-100 z-10">Total Secteur</TableCell>
+                  {secteurNames.map(s => (
+                    <TableCell key={s} className="text-right text-xs">{formatCurrency(fd.bySecteur[s]?.redevTot || 0)}</TableCell>
+                  ))}
+                  <TableCell className="text-right bg-blue-50 text-xs">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Pivot Table: AGR x Culture */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé AGR × Culture (Redevance Totale en DH)</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold sticky left-0 bg-gray-50 z-10">AGR \ Culture</TableHead>
+                  {cultNames.map(c => (
+                    <TableHead key={c} className="text-right font-semibold text-xs whitespace-nowrap">{c}</TableHead>
+                  ))}
+                  <TableHead className="text-right font-semibold bg-emerald-50">Total AGR</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agrNames.map(agr => {
+                  const agrTotal = fd.byAGR[agr]?.redevTot || 0;
+                  return (
+                    <TableRow key={agr}>
+                      <TableCell className="font-medium sticky left-0 bg-white z-10">{agr}</TableCell>
+                      {cultNames.map(cult => {
+                        const val = fd.byAGRCult?.[agr]?.[cult];
+                        return (
+                          <TableCell key={cult} className="text-right text-xs">
+                            {val ? formatCurrency(val.redevTot) : '-'}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-right font-semibold bg-emerald-50 text-xs">{formatCurrency(agrTotal)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-gray-100 font-bold">
+                  <TableCell className="sticky left-0 bg-gray-100 z-10">Total Culture</TableCell>
+                  {cultNames.map(c => (
+                    <TableCell key={c} className="text-right text-xs">{formatCurrency(fd.byCult[c]?.redevTot || 0)}</TableCell>
+                  ))}
+                  <TableCell className="text-right bg-emerald-50 text-xs">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Pivot Table: Secteur x Culture */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé Secteur × Culture (Redevance Totale en DH)</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold sticky left-0 bg-gray-50 z-10">Secteur \ Culture</TableHead>
+                  {cultNames.map(c => (
+                    <TableHead key={c} className="text-right font-semibold text-xs whitespace-nowrap">{c}</TableHead>
+                  ))}
+                  <TableHead className="text-right font-semibold bg-purple-50">Total Secteur</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {secteurNames.map(secteur => {
+                  const secteurTotal = fd.bySecteur[secteur]?.redevTot || 0;
+                  return (
+                    <TableRow key={secteur}>
+                      <TableCell className="font-medium sticky left-0 bg-white z-10">{secteur}</TableCell>
+                      {cultNames.map(cult => {
+                        const val = fd.bySecteurCult?.[secteur]?.[cult];
+                        return (
+                          <TableCell key={cult} className="text-right text-xs">
+                            {val ? formatCurrency(val.redevTot) : '-'}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-right font-semibold bg-purple-50 text-xs">{formatCurrency(secteurTotal)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-gray-100 font-bold">
+                  <TableCell className="sticky left-0 bg-gray-100 z-10">Total Culture</TableCell>
+                  {cultNames.map(c => (
+                    <TableCell key={c} className="text-right text-xs">{formatCurrency(fd.byCult[c]?.redevTot || 0)}</TableCell>
+                  ))}
+                  <TableCell className="text-right bg-purple-50 text-xs">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Flat detail table: All cross combinations */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail Complet - Top 50 Combinaisons AGR × Secteur × Culture</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="font-semibold">Secteur</TableHead>
+                  <TableHead className="font-semibold">Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Enr.</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
+                  <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Build AGR x Secteur x Cult from the cross data */}
+                {(() => {
+                  const allCombos: any[] = [];
+                  for (const [agr, secteurs] of Object.entries(fd.byAGRSecteur || {})) {
+                    for (const [secteur, sv] of Object.entries(secteurs as Record<string, any>)) {
+                      // Find matching cultures for this AGR+Secteur
+                      const matchingCults: string[] = [];
+                      for (const [cult, agrs] of Object.entries(fd.byAGRCult?.[agr] || {})) {
+                        if (fd.bySecteurCult?.[secteur]?.[cult]) {
+                          matchingCults.push(cult);
+                        }
+                      }
+                      if (matchingCults.length > 0) {
+                        for (const cult of matchingCults) {
+                          const agrCultVal = fd.byAGRCult?.[agr]?.[cult];
+                          const sectCultVal = fd.bySecteurCult?.[secteur]?.[cult];
+                          if (agrCultVal && sectCultVal) {
+                            // Approximate the 3-way intersection proportionally
+                            const cultPctInAGR = agrCultVal.redevTot / (fd.byAGR[agr]?.redevTot || 1);
+                            const sectCultPct = sectCultVal.redevTot / (fd.bySecteur[secteur]?.redevTot || 1);
+                            const estRedevTot = sv.redevTot * cultPctInAGR * sectCultPct / (cultPctInAGR + sectCultPct || 1) * 2;
+                            allCombos.push({
+                              agr, secteur, cult,
+                              redevTot: estRedevTot,
+                              volConsom: sv.volConsom * cultPctInAGR,
+                              volFact: sv.volFact * cultPctInAGR,
+                              count: Math.round(sv.count * cultPctInAGR),
+                            });
+                          }
+                        }
+                      } else {
+                        allCombos.push({
+                          agr, secteur, cult: '-',
+                          redevTot: sv.redevTot,
+                          volConsom: sv.volConsom,
+                          volFact: sv.volFact,
+                          count: sv.count,
+                        });
+                      }
+                    }
+                  }
+                  return allCombos
+                    .sort((a, b) => b.redevTot - a.redevTot)
+                    .slice(0, 50)
+                    .map((row, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{row.agr}</TableCell>
+                        <TableCell>{row.secteur}</TableCell>
+                        <TableCell>{row.cult}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
+                        <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
+                        <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(row.redevTot)}</TableCell>
+                      </TableRow>
+                    ));
+                })()}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; clientStats: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string }; globalFilters: FilterState }) {
   const clientEntries = Object.entries(fd.byClient)
     .map(([id, v]: [string, any]) => ({ id, ...v }))
@@ -1469,6 +1848,7 @@ export default function DashboardPage() {
       case 'secteur': return <SecteurSection fd={fd} />;
       case 'source': return <SourceSection fd={fd} />;
       case 'finance': return <FinanceSection fd={fd} />;
+      case 'cross': return <CrossAnalysisSection fd={fd} />;
       case 'client': return <ClientSection fd={fd} clientStats={fd.clientStats || { totalClientCount: 0, totalClientRedevTot: 0, top10ClientRedev: 0, concentrationPct: '0' }} globalFilters={filters} />;
       case 'cda': return <CDASection fd={fd} />;
       default: return <OverviewSection fd={fd} />;

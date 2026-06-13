@@ -13,6 +13,10 @@ function computeAggregations(rows: any[]) {
   const bySemestre: Record<string, any> = {};
   const byClient: Record<string, any> = {};
   const byCDA: Record<string, any> = {};
+  // Cross-analysis: AGR x Secteur x Culture
+  const byAGRSecteur: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>> = {};
+  const byAGRCult: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>> = {};
+  const bySecteurCult: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number; count: number }>> = {};
 
   for (const row of rows) {
     summary.totalVolConsom += row.VOL_CONSOM;
@@ -54,9 +58,33 @@ function computeAggregations(rows: any[]) {
     byCDA[cdaKey].volConsom += row.VOL_CONSOM; byCDA[cdaKey].volFact += row.VOL_FACT;
     byCDA[cdaKey].redevTot += row.REDEV_TOT; byCDA[cdaKey].redevCult += row.REDEV_CULT;
     byCDA[cdaKey].redevDph += row.REDEV_DPH; byCDA[cdaKey].count += 1;
+
+    // Cross: AGR x Secteur
+    if (!byAGRSecteur[row.AGR]) byAGRSecteur[row.AGR] = {};
+    if (!byAGRSecteur[row.AGR][row.SECTEUR]) byAGRSecteur[row.AGR][row.SECTEUR] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+    byAGRSecteur[row.AGR][row.SECTEUR].volConsom += row.VOL_CONSOM;
+    byAGRSecteur[row.AGR][row.SECTEUR].volFact += row.VOL_FACT;
+    byAGRSecteur[row.AGR][row.SECTEUR].redevTot += row.REDEV_TOT;
+    byAGRSecteur[row.AGR][row.SECTEUR].count += 1;
+
+    // Cross: AGR x Culture
+    if (!byAGRCult[row.AGR]) byAGRCult[row.AGR] = {};
+    if (!byAGRCult[row.AGR][row.CULT]) byAGRCult[row.AGR][row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+    byAGRCult[row.AGR][row.CULT].volConsom += row.VOL_CONSOM;
+    byAGRCult[row.AGR][row.CULT].volFact += row.VOL_FACT;
+    byAGRCult[row.AGR][row.CULT].redevTot += row.REDEV_TOT;
+    byAGRCult[row.AGR][row.CULT].count += 1;
+
+    // Cross: Secteur x Culture
+    if (!bySecteurCult[row.SECTEUR]) bySecteurCult[row.SECTEUR] = {};
+    if (!bySecteurCult[row.SECTEUR][row.CULT]) bySecteurCult[row.SECTEUR][row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0 };
+    bySecteurCult[row.SECTEUR][row.CULT].volConsom += row.VOL_CONSOM;
+    bySecteurCult[row.SECTEUR][row.CULT].volFact += row.VOL_FACT;
+    bySecteurCult[row.SECTEUR][row.CULT].redevTot += row.REDEV_TOT;
+    bySecteurCult[row.SECTEUR][row.CULT].count += 1;
   }
 
-  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, byClient, byCDA };
+  return { summary, byAGR, byCult, bySecteur, bySource, bySemestre, byClient, byCDA, byAGRSecteur, byAGRCult, bySecteurCult };
 }
 
 export async function GET(request: Request) {
@@ -119,6 +147,9 @@ export async function GET(request: Request) {
       bySemestre: agg.bySemestre,
       byClient: byClientTop,
       byCDA: agg.byCDA,
+      byAGRSecteur: agg.byAGRSecteur,
+      byAGRCult: agg.byAGRCult,
+      bySecteurCult: agg.bySecteurCult,
       clientStats: {
         totalClientCount,
         totalClientRedevTot,
