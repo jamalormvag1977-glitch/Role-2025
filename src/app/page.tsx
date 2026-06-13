@@ -416,6 +416,7 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -428,6 +429,7 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 {overviewTableData.map((row: any) => (
                   <TableRow key={row.name}>
                     <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(row.clientCount)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
@@ -438,6 +440,7 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 ))}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
@@ -525,6 +528,7 @@ function AGRSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -539,6 +543,7 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(v.clientCount)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
@@ -549,6 +554,7 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                 ))}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
@@ -641,6 +647,7 @@ function CultureSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -653,6 +660,7 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(v.clientCount)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
@@ -661,6 +669,7 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                 ))}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
@@ -734,6 +743,7 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Secteur</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -746,6 +756,7 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
+                    <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(v.clientCount)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
                     <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
@@ -754,6 +765,7 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                 ))}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
@@ -834,6 +846,7 @@ function SourceSection({ fd }: { fd: FilteredData }) {
             <TableHeader>
               <TableRow className="bg-gray-50">
                 <TableHead className="font-semibold">Source</TableHead>
+                <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                 <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                 <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                 <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -846,6 +859,7 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                 .map(([name, v]: [string, any]) => (
                 <TableRow key={name}>
                   <TableCell className="font-medium">{name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)'}</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(v.clientCount)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(v.count)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(v.volConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(v.volFact)}</TableCell>
@@ -854,6 +868,7 @@ function SourceSection({ fd }: { fd: FilteredData }) {
               ))}
               <TableRow className="bg-gray-50 font-bold">
                 <TableCell>Total</TableCell>
+                <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                 <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                 <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                 <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
@@ -967,6 +982,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">AGR</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Culture (DH)</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH (DH)</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
@@ -983,6 +999,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                     return (
                     <TableRow key={name}>
                       <TableCell className="font-medium">{name}</TableCell>
+                      <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(v.clientCount)}</TableCell>
                       <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
                       <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
@@ -992,6 +1009,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                   );})}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
@@ -1310,6 +1328,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="font-semibold">AGR</TableHead>
                   <TableHead className="font-semibold">Secteur</TableHead>
                   <TableHead className="font-semibold">Culture</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enr.</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -1338,12 +1357,16 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                             const cultPctInAGR = agrCultVal.redevTot / (fd.byAGR[agr]?.redevTot || 1);
                             const sectCultPct = sectCultVal.redevTot / (fd.bySecteur[secteur]?.redevTot || 1);
                             const estRedevTot = sv.redevTot * cultPctInAGR * sectCultPct / (cultPctInAGR + sectCultPct || 1) * 2;
+                            // Estimate client count proportionally
+                            const agrSectClientCount = sv.clientCount || 0;
+                            const estClientCount = Math.round(agrSectClientCount * cultPctInAGR);
                             allCombos.push({
                               agr, secteur, cult,
                               redevTot: estRedevTot,
                               volConsom: sv.volConsom * cultPctInAGR,
                               volFact: sv.volFact * cultPctInAGR,
                               count: Math.round(sv.count * cultPctInAGR),
+                              clientCount: estClientCount,
                             });
                           }
                         }
@@ -1354,6 +1377,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                           volConsom: sv.volConsom,
                           volFact: sv.volFact,
                           count: sv.count,
+                          clientCount: sv.clientCount || 0,
                         });
                       }
                     }
@@ -1366,6 +1390,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                         <TableCell className="font-medium">{row.agr}</TableCell>
                         <TableCell>{row.secteur}</TableCell>
                         <TableCell>{row.cult}</TableCell>
+                        <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(row.clientCount)}</TableCell>
                         <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
                         <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
                         <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
@@ -1687,6 +1712,7 @@ function CDASection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">N° CDA</TableHead>
+                  <TableHead className="text-right font-semibold">Nb Clients</TableHead>
                   <TableHead className="text-right font-semibold">Nb Enregistrements</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
@@ -1702,6 +1728,7 @@ function CDASection({ fd }: { fd: FilteredData }) {
                   return (
                     <TableRow key={row.id}>
                       <TableCell className="font-medium">{row.id}</TableCell>
+                      <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(row.clientCount)}</TableCell>
                       <TableCell className="text-right">{formatFullNumber(row.count)}</TableCell>
                       <TableCell className="text-right">{formatFullNumber(row.volConsom)}</TableCell>
                       <TableCell className="text-right">{formatFullNumber(row.volFact)}</TableCell>
@@ -1714,6 +1741,7 @@ function CDASection({ fd }: { fd: FilteredData }) {
                 })}
                 <TableRow className="bg-gray-50 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right font-semibold text-indigo-700">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalRows)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolConsom)}</TableCell>
                   <TableCell className="text-right">{formatFullNumber(fd.summary.totalVolFact)}</TableCell>
