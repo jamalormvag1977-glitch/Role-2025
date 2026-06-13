@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { parseExcel, parseExcelSync } from '@/lib/parse-excel';
+import { isCacheInvalidated, markCacheFresh } from '@/lib/cache';
 
 let cachedClients: any = null;
 
 async function getClientData() {
-  if (!cachedClients) {
+  if (!cachedClients || isCacheInvalidated()) {
     let data;
     try {
       data = await parseExcel();
@@ -12,28 +13,41 @@ async function getClientData() {
       data = parseExcelSync();
     }
 
-    cachedClients = Object.entries(data.byClient)
-      .map(([id, v]: [string, any]) => ({
-        id,
-        agr: v.agr,
-        secteur: v.secteur,
-        cult: v.cult,
-        count: v.count,
-        volConsom: v.volConsom,
-        volFact: v.volFact,
-        redevCult: v.redevCult,
-        redevDph: v.redevDph,
-        redevTot: v.redevTot,
-      }))
-      .filter(c => c.id !== '0' && c.id !== 'NaN' && c.count > 0)
-      .sort((a, b) => b.redevTot - a.redevTot);
+    // Build per-client aggregations from rows, with AGR/Secteur/Source/Cult info
+    const byClient: Record<string, any> = {};
+    for (const row of data.rows) {
+      const clientKey = String(row.CLIENT);
+      if (clientKey === '0' || clientKey === 'NaN') continue;
+      if (!byClient[clientKey]) {
+        byClient[clientKey] = {
+          id: clientKey,
+          agr: row.AGR,
+          secteur: row.SECTEUR,
+          cult: row.CULT,
+          source: row.SOURCE,
+          count: 0,
+          volConsom: 0,
+          volFact: 0,
+          redevCult: 0,
+          redevDph: 0,
+          redevTot: 0,
+        };
+      }
+      byClient[clientKey].count += 1;
+      byClient[clientKey].volConsom += row.VOL_CONSOM;
+      byClient[clientKey].volFact += row.VOL_FACT;
+      byClient[clientKey].redevCult += row.REDEV_CULT;
+      byClient[clientKey].redevDph += row.REDEV_DPH;
+      byClient[clientKey].redevTot += row.REDEV_TOT;
+    }
+
+    cachedClients = Object.values(byClient)
+      .filter((c: any) => c.count > 0)
+      .sort((a: any, b: any) => b.redevTot - a.redevTot);
+
+    markCacheFresh();
   }
   return cachedClients;
-}
-
-// Clear cache when data is re-uploaded
-export function clearClientCache() {
-  cachedClients = null;
 }
 
 export async function GET(request: Request) {
@@ -45,7 +59,29 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const search = searchParams.get('search') || '';
 
+    // Global filters from dashboard
+    const agr = searchParams.get('agr');
+    const secteur = searchParams.get('secteur');
+    const source = searchParams.get('source');
+    const cult = searchParams.get('cult');
+
     let filtered = allClients;
+
+    // Apply global filters
+    if (agr && agr !== 'all') {
+      filtered = filtered.filter((c: any) => c.agr === agr);
+    }
+    if (secteur && secteur !== 'all') {
+      filtered = filtered.filter((c: any) => c.secteur === secteur);
+    }
+    if (source && source !== 'all') {
+      filtered = filtered.filter((c: any) => c.source === source);
+    }
+    if (cult && cult !== 'all') {
+      filtered = filtered.filter((c: any) => c.cult === cult);
+    }
+
+    // Apply text search
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter((c: any) =>

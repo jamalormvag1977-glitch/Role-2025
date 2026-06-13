@@ -1003,7 +1003,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
   );
 }
 
-function ClientSection({ fd, clientStats }: { fd: FilteredData; clientStats: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string } }) {
+function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; clientStats: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string }; globalFilters: FilterState }) {
   const clientEntries = Object.entries(fd.byClient)
     .map(([id, v]: [string, any]) => ({ id, ...v }))
     .filter(c => c.id !== '0' && c.id !== 'NaN' && c.count > 0)
@@ -1021,13 +1021,19 @@ function ClientSection({ fd, clientStats }: { fd: FilteredData; clientStats: { t
   const [loadingClients, setLoadingClients] = useState(false);
 
   React.useEffect(() => {
+    setClientPage(1); // Reset to page 1 when filters change
     setLoadingClients(true);
     const params = new URLSearchParams({ page: String(clientPage), limit: '100', search: clientSearch });
+    // Pass global filters to the clients API
+    if (globalFilters.agr !== 'all') params.set('agr', globalFilters.agr);
+    if (globalFilters.secteur !== 'all') params.set('secteur', globalFilters.secteur);
+    if (globalFilters.source !== 'all') params.set('source', globalFilters.source);
+    if (globalFilters.cult !== 'all') params.set('cult', globalFilters.cult);
     fetch(`/api/clients?${params}`)
       .then(r => r.json())
       .then(d => { setClientData(d); setLoadingClients(false); })
       .catch(() => setLoadingClients(false));
-  }, [clientPage, clientSearch]);
+  }, [clientPage, clientSearch, globalFilters]);
 
   return (
     <div className="space-y-6">
@@ -1463,7 +1469,7 @@ export default function DashboardPage() {
       case 'secteur': return <SecteurSection fd={fd} />;
       case 'source': return <SourceSection fd={fd} />;
       case 'finance': return <FinanceSection fd={fd} />;
-      case 'client': return <ClientSection fd={fd} clientStats={fd.clientStats || { totalClientCount: 0, totalClientRedevTot: 0, top10ClientRedev: 0, concentrationPct: '0' }} />;
+      case 'client': return <ClientSection fd={fd} clientStats={fd.clientStats || { totalClientCount: 0, totalClientRedevTot: 0, top10ClientRedev: 0, concentrationPct: '0' }} globalFilters={filters} />;
       case 'cda': return <CDASection fd={fd} />;
       default: return <OverviewSection fd={fd} />;
     }
