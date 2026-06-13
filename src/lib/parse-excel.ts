@@ -42,10 +42,10 @@ export interface DashboardData {
     totalRedevTot: number;
   };
   byAGR: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; clientCount: number }>;
-  byCult: Record<string, { volConsom: number; volFact: number; redevTot: number; count: number; clientCount: number }>;
-  bySecteur: Record<string, { volConsom: number; volFact: number; redevTot: number; count: number; clientCount: number }>;
-  bySource: Record<string, { volConsom: number; volFact: number; redevTot: number; count: number; clientCount: number }>;
-  bySemestre: Record<string, { volConsom: number; volFact: number; redevTot: number; count: number; clientCount: number }>;
+  byCult: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; clientCount: number }>;
+  bySecteur: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; clientCount: number }>;
+  bySource: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; clientCount: number }>;
+  bySemestre: Record<string, { volConsom: number; volFact: number; redevTot: number; redevCult: number; redevDph: number; count: number; clientCount: number }>;
   byAGRSemestre: Record<string, Record<string, { volConsom: number; volFact: number; redevTot: number }>>;
   byCultAGR: Record<string, Record<string, { volConsom: number; redevTot: number }>>;
   bySecteurAGR: Record<string, Record<string, { volConsom: number; redevTot: number }>>;
@@ -172,30 +172,34 @@ function parseBuffer(buffer: Buffer): DashboardData {
     const cid1 = String(row.CLIENT);
     if (cid1 !== '0' && cid1 !== 'NaN') clientsPerAGR[row.AGR].add(cid1);
 
-    if (!byCult[row.CULT]) byCult[row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0, clientCount: 0 };
+    if (!byCult[row.CULT]) byCult[row.CULT] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, clientCount: 0 };
     byCult[row.CULT].volConsom += row.VOL_CONSOM; byCult[row.CULT].volFact += row.VOL_FACT;
-    byCult[row.CULT].redevTot += row.REDEV_TOT; byCult[row.CULT].count += 1;
+    byCult[row.CULT].redevTot += row.REDEV_TOT; byCult[row.CULT].redevCult += row.REDEV_CULT;
+    byCult[row.CULT].redevDph += row.REDEV_DPH; byCult[row.CULT].count += 1;
     if (!clientsPerCult[row.CULT]) clientsPerCult[row.CULT] = new Set();
     const cid2 = String(row.CLIENT);
     if (cid2 !== '0' && cid2 !== 'NaN') clientsPerCult[row.CULT].add(cid2);
 
-    if (!bySecteur[row.SECTEUR]) bySecteur[row.SECTEUR] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0, clientCount: 0 };
+    if (!bySecteur[row.SECTEUR]) bySecteur[row.SECTEUR] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, clientCount: 0 };
     bySecteur[row.SECTEUR].volConsom += row.VOL_CONSOM; bySecteur[row.SECTEUR].volFact += row.VOL_FACT;
-    bySecteur[row.SECTEUR].redevTot += row.REDEV_TOT; bySecteur[row.SECTEUR].count += 1;
+    bySecteur[row.SECTEUR].redevTot += row.REDEV_TOT; bySecteur[row.SECTEUR].redevCult += row.REDEV_CULT;
+    bySecteur[row.SECTEUR].redevDph += row.REDEV_DPH; bySecteur[row.SECTEUR].count += 1;
     if (!clientsPerSecteur[row.SECTEUR]) clientsPerSecteur[row.SECTEUR] = new Set();
     const cid3 = String(row.CLIENT);
     if (cid3 !== '0' && cid3 !== 'NaN') clientsPerSecteur[row.SECTEUR].add(cid3);
 
-    if (!bySource[row.SOURCE]) bySource[row.SOURCE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0, clientCount: 0 };
+    if (!bySource[row.SOURCE]) bySource[row.SOURCE] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, clientCount: 0 };
     bySource[row.SOURCE].volConsom += row.VOL_CONSOM; bySource[row.SOURCE].volFact += row.VOL_FACT;
-    bySource[row.SOURCE].redevTot += row.REDEV_TOT; bySource[row.SOURCE].count += 1;
+    bySource[row.SOURCE].redevTot += row.REDEV_TOT; bySource[row.SOURCE].redevCult += row.REDEV_CULT;
+    bySource[row.SOURCE].redevDph += row.REDEV_DPH; bySource[row.SOURCE].count += 1;
     if (!clientsPerSource[row.SOURCE]) clientsPerSource[row.SOURCE] = new Set();
     const cid4 = String(row.CLIENT);
     if (cid4 !== '0' && cid4 !== 'NaN') clientsPerSource[row.SOURCE].add(cid4);
 
-    if (!bySemestre[row.SEMESTRE]) bySemestre[row.SEMESTRE] = { volConsom: 0, volFact: 0, redevTot: 0, count: 0, clientCount: 0 };
+    if (!bySemestre[row.SEMESTRE]) bySemestre[row.SEMESTRE] = { volConsom: 0, volFact: 0, redevTot: 0, redevCult: 0, redevDph: 0, count: 0, clientCount: 0 };
     bySemestre[row.SEMESTRE].volConsom += row.VOL_CONSOM; bySemestre[row.SEMESTRE].volFact += row.VOL_FACT;
-    bySemestre[row.SEMESTRE].redevTot += row.REDEV_TOT; bySemestre[row.SEMESTRE].count += 1;
+    bySemestre[row.SEMESTRE].redevTot += row.REDEV_TOT; bySemestre[row.SEMESTRE].redevCult += row.REDEV_CULT;
+    bySemestre[row.SEMESTRE].redevDph += row.REDEV_DPH; bySemestre[row.SEMESTRE].count += 1;
     if (!clientsPerSemestre[row.SEMESTRE]) clientsPerSemestre[row.SEMESTRE] = new Set();
     const cid5 = String(row.CLIENT);
     if (cid5 !== '0' && cid5 !== 'NaN') clientsPerSemestre[row.SEMESTRE].add(cid5);
