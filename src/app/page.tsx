@@ -423,14 +423,20 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {overviewTableData.map((row: any) => {
                   const cultPct = ((row.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                   const dphPct = ((row.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                  const totPct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                  const volConsPct = ((row.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                  const volFactPct = ((row.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                   return (
                   <TableRow key={row.name}>
                     <TableCell className="font-medium">{row.name}</TableCell>
@@ -441,8 +447,11 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                     <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
                     <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                    <TableCell className="text-right">{volConsPct}%</TableCell>
+                    <TableCell className="text-right">{volFactPct}%</TableCell>
                     <TableCell className="text-right">{cultPct}%</TableCell>
                     <TableCell className="text-right">{dphPct}%</TableCell>
+                    <TableCell className="text-right">{totPct}%</TableCell>
                   </TableRow>
                 );})}
                 <TableRow className="bg-gray-50 font-bold">
@@ -454,6 +463,9 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                 </TableRow>
@@ -544,8 +556,11 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -554,6 +569,9 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => {
                     const cultPct = ((v.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                     const dphPct = ((v.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                    const totPct = ((v.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                    const volConsPct = ((v.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                    const volFactPct = ((v.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                     return (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
@@ -564,8 +582,11 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                     <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
                     <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                    <TableCell className="text-right">{volConsPct}%</TableCell>
+                    <TableCell className="text-right">{volFactPct}%</TableCell>
                     <TableCell className="text-right">{cultPct}%</TableCell>
                     <TableCell className="text-right">{dphPct}%</TableCell>
+                    <TableCell className="text-right">{totPct}%</TableCell>
                   </TableRow>
                 );})}
                 <TableRow className="bg-gray-50 font-bold">
@@ -577,6 +598,9 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                 </TableRow>
@@ -672,8 +696,11 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -682,6 +709,9 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => {
                     const cultPct = ((v.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                     const dphPct = ((v.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                    const totPct = ((v.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                    const volConsPct = ((v.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                    const volFactPct = ((v.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                     return (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
@@ -692,8 +722,11 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                     <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
                     <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                    <TableCell className="text-right">{volConsPct}%</TableCell>
+                    <TableCell className="text-right">{volFactPct}%</TableCell>
                     <TableCell className="text-right">{cultPct}%</TableCell>
                     <TableCell className="text-right">{dphPct}%</TableCell>
+                    <TableCell className="text-right">{totPct}%</TableCell>
                   </TableRow>
                 );})}
                 <TableRow className="bg-gray-50 font-bold">
@@ -705,6 +738,9 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                 </TableRow>
@@ -783,8 +819,11 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -793,6 +832,9 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => {
                     const cultPct = ((v.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                     const dphPct = ((v.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                    const totPct = ((v.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                    const volConsPct = ((v.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                    const volFactPct = ((v.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                     return (
                   <TableRow key={name}>
                     <TableCell className="font-medium">{name}</TableCell>
@@ -803,8 +845,11 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                     <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
                     <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                    <TableCell className="text-right">{volConsPct}%</TableCell>
+                    <TableCell className="text-right">{volFactPct}%</TableCell>
                     <TableCell className="text-right">{cultPct}%</TableCell>
                     <TableCell className="text-right">{dphPct}%</TableCell>
+                    <TableCell className="text-right">{totPct}%</TableCell>
                   </TableRow>
                 );})}
                 <TableRow className="bg-gray-50 font-bold">
@@ -816,6 +861,9 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                 </TableRow>
@@ -901,8 +949,11 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                 <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                 <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                 <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                 <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                 <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -911,6 +962,9 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                 .map(([name, v]: [string, any]) => {
                   const cultPct = ((v.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                   const dphPct = ((v.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                  const totPct = ((v.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                  const volConsPct = ((v.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                  const volFactPct = ((v.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                   return (
                 <TableRow key={name}>
                   <TableCell className="font-medium">{name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)'}</TableCell>
@@ -921,8 +975,11 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(v.redevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(v.redevDph)}</TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
+                  <TableCell className="text-right">{volConsPct}%</TableCell>
+                  <TableCell className="text-right">{volFactPct}%</TableCell>
                   <TableCell className="text-right">{cultPct}%</TableCell>
                   <TableCell className="text-right">{dphPct}%</TableCell>
+                  <TableCell className="text-right">{totPct}%</TableCell>
                 </TableRow>
               );})}
               <TableRow className="bg-gray-50 font-bold">
@@ -934,6 +991,9 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                 <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                 <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                 <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                <TableCell className="text-right">100%</TableCell>
+                <TableCell className="text-right">100%</TableCell>
+                <TableCell className="text-right">100%</TableCell>
                 <TableCell className="text-right">100%</TableCell>
                 <TableCell className="text-right">100%</TableCell>
               </TableRow>
@@ -1051,6 +1111,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1059,6 +1120,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                   .map(([name, v]: [string, any]) => {
                     const cultPct = ((v.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                     const dphPct = ((v.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                    const totPct = ((v.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
                     return (
                     <TableRow key={name}>
                       <TableCell className="font-medium">{name}</TableCell>
@@ -1068,6 +1130,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                       <TableCell className="text-right font-semibold">{formatCurrency(v.redevTot)}</TableCell>
                       <TableCell className="text-right">{cultPct}%</TableCell>
                       <TableCell className="text-right">{dphPct}%</TableCell>
+                      <TableCell className="text-right">{totPct}%</TableCell>
                     </TableRow>
                   );})}
                 <TableRow className="bg-gray-50 font-bold">
@@ -1076,6 +1139,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                 </TableRow>
@@ -1398,8 +1462,11 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale (DH)</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1462,6 +1529,9 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                     .map((row, i) => {
                       const cultPct = ((row.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                       const dphPct = ((row.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                      const totPct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                      const volConsPct = ((row.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                      const volFactPct = ((row.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                       return (
                       <TableRow key={i}>
                         <TableCell className="font-medium">{row.agr}</TableCell>
@@ -1474,8 +1544,11 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                         <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
                         <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                        <TableCell className="text-right">{volConsPct}%</TableCell>
+                        <TableCell className="text-right">{volFactPct}%</TableCell>
                         <TableCell className="text-right">{cultPct}%</TableCell>
                         <TableCell className="text-right">{dphPct}%</TableCell>
+                        <TableCell className="text-right">{totPct}%</TableCell>
                       </TableRow>
                     );})
                 })()}
@@ -1638,14 +1711,20 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                       <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                       <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                       <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                      <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                      <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                       <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                       <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                      <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {clientData.clients.map((row: any) => {
                       const cultPct = ((row.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                       const dphPct = ((row.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                      const totPct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                      const volConsPct = ((row.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                      const volFactPct = ((row.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                       return (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium">{row.id}</TableCell>
@@ -1658,8 +1737,11 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                         <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
                         <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                        <TableCell className="text-right">{volConsPct}%</TableCell>
+                        <TableCell className="text-right">{volFactPct}%</TableCell>
                         <TableCell className="text-right">{cultPct}%</TableCell>
                         <TableCell className="text-right">{dphPct}%</TableCell>
+                        <TableCell className="text-right">{totPct}%</TableCell>
                       </TableRow>
                     );})}
                     <TableRow className="bg-gray-50 font-bold">
@@ -1673,6 +1755,9 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                       <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                       <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                      <TableCell className="text-right">100%</TableCell>
+                      <TableCell className="text-right">100%</TableCell>
+                      <TableCell className="text-right">100%</TableCell>
                       <TableCell className="text-right">100%</TableCell>
                       <TableCell className="text-right">100%</TableCell>
                     </TableRow>
@@ -1809,16 +1894,20 @@ function CDASection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
+                  <TableHead className="text-right font-semibold">% Vol. Fact.</TableHead>
                   <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
                   <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
-                  <TableHead className="text-right font-semibold">% du Total</TableHead>
+                  <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {cdaEntries.map((row: any) => {
-                  const pct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
+                  const totPct = ((row.redevTot / (fd.summary.totalRedevTot || 1)) * 100).toFixed(1);
                   const cultPct = ((row.redevCult / (fd.summary.totalRedevCult || 1)) * 100).toFixed(1);
                   const dphPct = ((row.redevDph / (fd.summary.totalRedevDph || 1)) * 100).toFixed(1);
+                  const volConsPct = ((row.volConsom / (fd.summary.totalVolConsom || 1)) * 100).toFixed(1);
+                  const volFactPct = ((row.volFact / (fd.summary.totalVolFact || 1)) * 100).toFixed(1);
                   return (
                     <TableRow key={row.id}>
                       <TableCell className="font-medium">{row.id}</TableCell>
@@ -1829,9 +1918,11 @@ function CDASection({ fd }: { fd: FilteredData }) {
                       <TableCell className="text-right text-emerald-700">{formatCurrency(row.redevCult)}</TableCell>
                       <TableCell className="text-right text-blue-700">{formatCurrency(row.redevDph)}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(row.redevTot)}</TableCell>
+                      <TableCell className="text-right">{volConsPct}%</TableCell>
+                      <TableCell className="text-right">{volFactPct}%</TableCell>
                       <TableCell className="text-right">{cultPct}%</TableCell>
                       <TableCell className="text-right">{dphPct}%</TableCell>
-                      <TableCell className="text-right">{pct}%</TableCell>
+                      <TableCell className="text-right">{totPct}%</TableCell>
                     </TableRow>
                   );
                 })}
@@ -1844,6 +1935,8 @@ function CDASection({ fd }: { fd: FilteredData }) {
                   <TableCell className="text-right text-emerald-700">{formatCurrency(fd.summary.totalRedevCult)}</TableCell>
                   <TableCell className="text-right text-blue-700">{formatCurrency(fd.summary.totalRedevDph)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(fd.summary.totalRedevTot)}</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
+                  <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">100%</TableCell>
