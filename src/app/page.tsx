@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -463,19 +463,19 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>AGR</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Nb Enregistrements</TableHead>
-                  <TableHead className="text-right">Vol. Consommé (m³)</TableHead>
-                  <TableHead className="text-right">Vol. Facturé (m³)</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Clt</TableHead>
+                  <TableHead className="text-right">Nb Enr.</TableHead>
+                  <TableHead className="text-right">Vol. Cons. (m³)</TableHead>
+                  <TableHead className="text-right">Vol. Fact. (m³)</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
                   <TableHead className="text-right">% DPH</TableHead>
-                  <TableHead className="text-right">Redev. Totale</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
-                  <TableHead className="text-right">% Vol. Cons.</TableHead>
-                  <TableHead className="text-right">% Vol. Fact.</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
+                  <TableHead className="text-right">% Vol. C.</TableHead>
+                  <TableHead className="text-right">% Vol. F.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -595,20 +595,19 @@ function AGRSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par AGR</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[300px]">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>AGR</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Nb Enregistrements</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Nb Clt</TableHead>
+                  <TableHead className="text-right">Nb Enr.</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -647,7 +646,6 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
@@ -699,12 +697,11 @@ function CultureSection({ fd }: { fd: FilteredData }) {
         <Card className="shadow-md">
           <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail par Culture</CardTitle></CardHeader>
           <CardContent>
-            <ScrollArea className="h-[350px]">
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[350px] overflow-y-auto">
                 {Object.entries(fd.byCult)
                   .sort(([,a]: [string, any],[,b]: [string, any]) => b.redevTot - a.redevTot)
                   .map(([name, v]: [string, any]) => (
-                  <div key={name} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors">
+                  <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors">
                     <div className="flex items-center gap-2">
                       <Sprout className="h-4 w-4 text-green-600" />
                       <span className="text-sm font-medium">{name}</span>
@@ -716,7 +713,6 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -729,15 +725,15 @@ function CultureSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Culture</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Nb Enregistrements</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Nb Clt</TableHead>
+                  <TableHead className="text-right">Nb Enr.</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -840,15 +836,15 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Secteur</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Nb Enregistrements</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Nb Clt</TableHead>
+                  <TableHead className="text-right">Nb Enr.</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -964,15 +960,15 @@ function SourceSection({ fd }: { fd: FilteredData }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Source</TableHead>
-                <TableHead className="text-right">Nb Clients</TableHead>
-                <TableHead className="text-right">% Nb Clients</TableHead>
-                <TableHead className="text-right">Nb Enregistrements</TableHead>
-                <TableHead className="text-right">Redev. Culture</TableHead>
-                <TableHead className="text-right">% Culture (du total)</TableHead>
+                <TableHead className="text-right">Nb Clt</TableHead>
+                <TableHead className="text-right">% Nb Clt</TableHead>
+                <TableHead className="text-right">Nb Enr.</TableHead>
+                <TableHead className="text-right">Redev. Cult.</TableHead>
+                <TableHead className="text-right">% Cult.</TableHead>
                 <TableHead className="text-right">Redev. DPH</TableHead>
-                <TableHead className="text-right">% DPH (du total)</TableHead>
-                <TableHead className="text-right">Redev. Totale</TableHead>
-                <TableHead className="text-right">% Redev. Tot.</TableHead>
+                <TableHead className="text-right">% DPH</TableHead>
+                <TableHead className="text-right">Redev. Tot.</TableHead>
+                <TableHead className="text-right">% Tot.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1112,19 +1108,18 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail Financier par AGR</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[350px]">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>AGR</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Redev. Culture (DH)</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Nb Clt</TableHead>
+                  <TableHead className="text-right">Redev. Cult. (DH)</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH (DH)</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale (DH)</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot. (DH)</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1161,7 +1156,6 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
@@ -1326,7 +1320,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé AGR × Secteur (Redevance Totale en DH)</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
+          <div className="overflow-x-auto">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
@@ -1364,7 +1358,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -1372,7 +1366,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé AGR × Culture (Redevance Totale en DH)</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
+          <div className="overflow-x-auto">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
@@ -1410,7 +1404,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -1418,7 +1412,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Croisé Secteur × Culture (Redevance Totale en DH)</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
+          <div className="overflow-x-auto">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
@@ -1456,7 +1450,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -1464,22 +1458,22 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail Complet - Top 50 Combinaisons AGR × Secteur × Culture</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
+          <div className="overflow-x-auto">
             <Table className="dash-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>AGR</TableHead>
                   <TableHead>Secteur</TableHead>
                   <TableHead>Culture</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Clt</TableHead>
                   <TableHead className="text-right">Nb Enr.</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale (DH)</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1563,7 +1557,7 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
                 })()}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -1714,12 +1708,12 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                       <TableHead>Secteur</TableHead>
                       <TableHead>Culture</TableHead>
                       <TableHead className="text-right">Nb Enr.</TableHead>
-                      <TableHead className="text-right">Redev. Culture</TableHead>
-                      <TableHead className="text-right">% Culture (du total)</TableHead>
+                      <TableHead className="text-right">Redev. Cult.</TableHead>
+                      <TableHead className="text-right">% Cult.</TableHead>
                       <TableHead className="text-right">Redev. DPH</TableHead>
-                      <TableHead className="text-right">% DPH (du total)</TableHead>
-                      <TableHead className="text-right">Redev. Totale</TableHead>
-                      <TableHead className="text-right">% Redev. Tot.</TableHead>
+                      <TableHead className="text-right">% DPH</TableHead>
+                      <TableHead className="text-right">Redev. Tot.</TableHead>
+                      <TableHead className="text-right">% Tot.</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1879,15 +1873,15 @@ function CDASection({ fd }: { fd: FilteredData }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>N° CDA</TableHead>
-                  <TableHead className="text-right">Nb Clients</TableHead>
-                  <TableHead className="text-right">% Nb Clients</TableHead>
-                  <TableHead className="text-right">Nb Enregistrements</TableHead>
-                  <TableHead className="text-right">Redev. Culture</TableHead>
-                  <TableHead className="text-right">% Culture (du total)</TableHead>
+                  <TableHead className="text-right">Nb Clt</TableHead>
+                  <TableHead className="text-right">% Clt</TableHead>
+                  <TableHead className="text-right">Nb Enr.</TableHead>
+                  <TableHead className="text-right">Redev. Cult.</TableHead>
+                  <TableHead className="text-right">% Cult.</TableHead>
                   <TableHead className="text-right">Redev. DPH</TableHead>
-                  <TableHead className="text-right">% DPH (du total)</TableHead>
-                  <TableHead className="text-right">Redev. Totale</TableHead>
-                  <TableHead className="text-right">% Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% DPH</TableHead>
+                  <TableHead className="text-right">Redev. Tot.</TableHead>
+                  <TableHead className="text-right">% Tot.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
