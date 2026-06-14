@@ -459,7 +459,6 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Récapitulatif par AGR</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[300px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -470,9 +469,9 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                   <TableHead className="text-right font-semibold">Vol. Consommé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Vol. Facturé (m³)</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Culture</TableHead>
-                  <TableHead className="text-right font-semibold">% Culture (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% Culture</TableHead>
                   <TableHead className="text-right font-semibold">Redev. DPH</TableHead>
-                  <TableHead className="text-right font-semibold">% DPH (du total)</TableHead>
+                  <TableHead className="text-right font-semibold">% DPH</TableHead>
                   <TableHead className="text-right font-semibold">Redev. Totale</TableHead>
                   <TableHead className="text-right font-semibold">% Redev. Tot.</TableHead>
                   <TableHead className="text-right font-semibold">% Vol. Cons.</TableHead>
@@ -523,7 +522,6 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
