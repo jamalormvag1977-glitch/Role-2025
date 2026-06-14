@@ -37,16 +37,22 @@ async function fetchDettesFromBlob(): Promise<Buffer | null> {
 function findLocalDettesFile(): string | null {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require('fs');
-  const uploadDir = path.join(process.cwd(), 'upload');
-  try {
-    const files = fs.readdirSync(uploadDir) as string[];
-    const match = files.find((f: string) => f.toLowerCase().includes('encours') || f.toLowerCase().includes('dettes'));
-    if (match) return path.join(uploadDir, match);
-    // Fallback: any xlsx
-    const xlsxMatch = files.find((f: string) => f.endsWith('.xlsx'));
-    if (xlsxMatch) return path.join(uploadDir, xlsxMatch);
-  } catch {
-    // directory doesn't exist
+  const searchDirs = [
+    path.join(process.cwd(), 'data'),
+    path.join(process.cwd(), 'upload'),
+  ];
+  for (const dir of searchDirs) {
+    try {
+      const files = fs.readdirSync(dir) as string[];
+      // Exact match first
+      const exactMatch = files.find((f: string) => f === 'dettes-encours.xlsx');
+      if (exactMatch) return path.join(dir, exactMatch);
+      // Partial match
+      const match = files.find((f: string) => f.toLowerCase().includes('encours') || f.toLowerCase().includes('dettes'));
+      if (match) return path.join(dir, match);
+    } catch {
+      // directory doesn't exist
+    }
   }
   return null;
 }
