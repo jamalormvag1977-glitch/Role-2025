@@ -1796,7 +1796,6 @@ function CDASection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par CDA</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -1843,7 +1842,6 @@ function CDASection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
