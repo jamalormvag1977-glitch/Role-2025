@@ -670,7 +670,6 @@ function CultureSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Culture</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[350px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -718,7 +717,6 @@ function CultureSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
@@ -779,7 +777,6 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Secteur</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -827,7 +824,6 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                 </TableRow>
               </TableBody>
             </Table>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
