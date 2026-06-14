@@ -796,8 +796,10 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                     <Badge variant="outline" className="text-xs">{v.count}</Badge>
                   </div>
                   <div className="text-xs space-y-1">
-                    <div className="flex justify-between"><span className="text-gray-500">Vol. Consommé</span><span className="font-medium">{formatNumber(v.volConsom)}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-medium text-emerald-600">{formatCurrency(v.redevTot)}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Nb Clients</span><span className="font-medium text-indigo-600">{formatFullNumber(v.clientCount || 0)}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Redev. Culture</span><span className="font-medium text-emerald-600">{formatCurrency(v.redevCult)}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Redev. DPH</span><span className="font-medium text-blue-600">{formatCurrency(v.redevDph)}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-medium text-gray-800">{formatCurrency(v.redevTot)}</span></div>
                   </div>
                 </div>
               ))}
@@ -870,7 +872,8 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
 function SourceSection({ fd }: { fd: FilteredData }) {
   const sourceChartData = Object.entries(fd.bySource).map(([name, v]: [string, any]) => ({
     name: name === 'R' ? 'Eau de surface (R)' : 'Pompage (PP)',
-    volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot, count: v.count,
+    volConsom: v.volConsom, volFact: v.volFact, redevTot: v.redevTot, redevCult: v.redevCult, redevDph: v.redevDph,
+    clientCount: v.clientCount, count: v.count,
     isSurface: name === 'R',
   }));
 
@@ -890,17 +893,21 @@ function SourceSection({ fd }: { fd: FilteredData }) {
                 </div>
               </div>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Volume Consommé</span>
-                  <span className="font-bold">{formatFullNumber(item.volConsom)} m³</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Volume Facturé</span>
-                  <span className="font-bold">{formatFullNumber(item.volFact)} m³</span>
+                <div className="flex justify-between items-center p-2 bg-indigo-50 rounded-lg">
+                  <span className="text-gray-600">Nb Clients</span>
+                  <span className="font-bold text-indigo-700">{formatFullNumber(item.clientCount || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-emerald-50 rounded-lg">
-                  <span className="text-gray-600">Redevance Totale</span>
-                  <span className="font-bold text-emerald-700">{formatCurrency(item.redevTot)}</span>
+                  <span className="text-gray-600">Redev. Culture</span>
+                  <span className="font-bold text-emerald-700">{formatCurrency(item.redevCult)}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                  <span className="text-gray-600">Redev. DPH</span>
+                  <span className="font-bold text-blue-700">{formatCurrency(item.redevDph)}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">Redev. Totale</span>
+                  <span className="font-bold text-gray-800">{formatCurrency(item.redevTot)}</span>
                 </div>
               </div>
             </CardContent>
