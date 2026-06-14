@@ -782,7 +782,6 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
       <Card className="shadow-md">
         <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Détail par Secteur</CardTitle></CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {Object.entries(fd.bySecteur)
                 .sort(([,a]: [string, any],[,b]: [string, any]) => b.volConsom - a.volConsom)
@@ -804,7 +803,6 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
                 </div>
               ))}
             </div>
-          </ScrollArea>
         </CardContent>
       </Card>
 
