@@ -68,6 +68,26 @@ const formatCurrency = (n: number) => {
 
 const formatFullNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(Math.round(n));
 
+const BarLabel = ({ x, y, width, height, value }: any) => {
+  if (value === undefined || value === null || value === 0) return null;
+  const formatted = formatNumber(value);
+  return (
+    <text x={x + width / 2} y={y - 4} textAnchor="middle" fill="#374151" fontSize={10} fontWeight={600}>
+      {formatted}
+    </text>
+  );
+};
+
+const BarLabelH = ({ x, y, width, height, value }: any) => {
+  if (value === undefined || value === null || value === 0) return null;
+  const formatted = formatNumber(value);
+  return (
+    <text x={x + width + 4} y={y + height / 2 + 4} textAnchor="start" fill="#374151" fontSize={10} fontWeight={600}>
+      {formatted}
+    </text>
+  );
+};
+
 const NAV_ITEMS = [
   { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard },
   { id: 'agr', label: 'Analyse par AGR', icon: BarChart3 },
@@ -350,8 +370,8 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatNumber(v)} />
                 <Tooltip formatter={(v: number) => formatFullNumber(v)} />
                 <Legend />
-                <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} />
-                <Bar dataKey="volFact" name="Volume Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
+                <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} label={BarLabel} />
+                <Bar dataKey="volFact" name="Volume Facturé" fill="#60a5fa" radius={[4,4,0,0]} label={BarLabel} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -366,7 +386,7 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatNumber(v)} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
-                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} label={BarLabel} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -518,8 +538,8 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={100} />
                 <Tooltip formatter={(v: number) => formatFullNumber(v)} />
                 <Legend />
-                <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[0,4,4,0]} />
-                <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[0,4,4,0]} />
+                <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[0,4,4,0]} label={BarLabelH} />
+                <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[0,4,4,0]} label={BarLabelH} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -533,7 +553,7 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+                <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} label={BarLabel} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -619,8 +639,8 @@ function CultureSection({ fd }: { fd: FilteredData }) {
               <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => formatFullNumber(v)} />
               <Legend />
-              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} />
-              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} />
+              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[4,4,0,0]} label={BarLabel} />
+              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[4,4,0,0]} label={BarLabel} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -740,8 +760,8 @@ function SecteurSection({ fd }: { fd: FilteredData }) {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={50} />
               <Tooltip formatter={(v: number) => formatFullNumber(v)} />
               <Legend />
-              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[0,4,4,0]} />
-              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[0,4,4,0]} />
+              <Bar dataKey="volConsom" name="Volume Consommé" fill="#1e40af" radius={[0,4,4,0]} label={BarLabelH} />
+              <Bar dataKey="redevTot" name="Redevance Totale" fill="#10b981" radius={[0,4,4,0]} label={BarLabelH} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -880,9 +900,9 @@ function SourceSection({ fd }: { fd: FilteredData }) {
               <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => formatFullNumber(v)} />
               <Legend />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} />
-              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
-              <Bar dataKey="redevTot" name="Redevance" fill="#10b981" radius={[4,4,0,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} label={BarLabel} />
+              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} label={BarLabel} />
+              <Bar dataKey="redevTot" name="Redevance" fill="#10b981" radius={[4,4,0,0]} label={BarLabel} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -993,7 +1013,7 @@ function FinanceSection({ fd }: { fd: FilteredData }) {
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
                 <Bar dataKey="redevCult" name="Redev. Culture" stackId="a" fill="#10b981" />
-                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[4,4,0,0]} />
+                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[4,4,0,0]} label={BarLabel} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1203,8 +1223,8 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
               <Legend />
-              <Bar dataKey="redevTot" name="Redev. Totale" fill="#1e40af" radius={[0,4,4,0]} />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#60a5fa" radius={[0,4,4,0]} />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#1e40af" radius={[0,4,4,0]} label={BarLabelH} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#60a5fa" radius={[0,4,4,0]} label={BarLabelH} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1221,8 +1241,8 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
               <Legend />
-              <Bar dataKey="redevTot" name="Redev. Totale" fill="#10b981" radius={[0,4,4,0]} />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#6ee7b7" radius={[0,4,4,0]} />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#10b981" radius={[0,4,4,0]} label={BarLabelH} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#6ee7b7" radius={[0,4,4,0]} label={BarLabelH} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1239,8 +1259,8 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={150} />
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
               <Legend />
-              <Bar dataKey="redevTot" name="Redev. Totale" fill="#8b5cf6" radius={[0,4,4,0]} />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#c4b5fd" radius={[0,4,4,0]} />
+              <Bar dataKey="redevTot" name="Redev. Totale" fill="#8b5cf6" radius={[0,4,4,0]} label={BarLabelH} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#c4b5fd" radius={[0,4,4,0]} label={BarLabelH} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1560,7 +1580,7 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={70} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
-                <Bar dataKey="redevTot" name="Redev. Totale" fill="#6366f1" radius={[0,4,4,0]} />
+                <Bar dataKey="redevTot" name="Redev. Totale" fill="#6366f1" radius={[0,4,4,0]} label={BarLabelH} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1596,8 +1616,8 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
               <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => formatFullNumber(v)} />
               <Legend />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} />
-              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#1e40af" radius={[4,4,0,0]} label={BarLabel} />
+              <Bar dataKey="volFact" name="Vol. Facturé" fill="#60a5fa" radius={[4,4,0,0]} label={BarLabel} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -1749,7 +1769,7 @@ function CDASection({ fd }: { fd: FilteredData }) {
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
                 <Bar dataKey="redevCult" name="Redev. Culture" stackId="a" fill="#10b981" />
-                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[0,4,4,0]} />
+                <Bar dataKey="redevDph" name="Redev. DPH" stackId="a" fill="#3b82f6" radius={[0,4,4,0]} label={BarLabelH} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1785,8 +1805,8 @@ function CDASection({ fd }: { fd: FilteredData }) {
               <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => formatFullNumber(v)} />
               <Legend />
-              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#0d9488" radius={[4,4,0,0]} />
-              <Bar dataKey="volFact" name="Vol. Facturé" fill="#5eead4" radius={[4,4,0,0]} />
+              <Bar dataKey="volConsom" name="Vol. Consommé" fill="#0d9488" radius={[4,4,0,0]} label={BarLabel} />
+              <Bar dataKey="volFact" name="Vol. Facturé" fill="#5eead4" radius={[4,4,0,0]} label={BarLabel} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
