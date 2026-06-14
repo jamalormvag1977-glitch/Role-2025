@@ -1578,13 +1578,15 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
 
   const [clientPage, setClientPage] = useState(1);
   const [clientSearch, setClientSearch] = useState('');
+  const [clientLimit, setClientLimit] = useState(100);
+  const [clientJumpPage, setClientJumpPage] = useState('');
   const [clientData, setClientData] = useState<{clients: any[], total: number, totalPages: number}>({clients: [], total: 0, totalPages: 0});
   const [loadingClients, setLoadingClients] = useState(false);
 
   React.useEffect(() => {
     setClientPage(1); // Reset to page 1 when filters change
     setLoadingClients(true);
-    const params = new URLSearchParams({ page: String(clientPage), limit: '100', search: clientSearch });
+    const params = new URLSearchParams({ page: String(clientPage), limit: String(clientLimit), search: clientSearch });
     // Pass global filters to the clients API
     if (globalFilters.agr !== 'all') params.set('agr', globalFilters.agr);
     if (globalFilters.secteur !== 'all') params.set('secteur', globalFilters.secteur);
@@ -1594,7 +1596,7 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
       .then(r => r.json())
       .then(d => { setClientData(d); setLoadingClients(false); })
       .catch(() => setLoadingClients(false));
-  }, [clientPage, clientSearch, globalFilters]);
+  }, [clientPage, clientSearch, clientLimit, globalFilters]);
 
   return (
     <div className="space-y-6">
@@ -1679,17 +1681,29 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
       {/* Tableau détaillé Client - paginé */}
       <Card className="shadow-md">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base font-semibold text-gray-800">Tableau Détail par Client</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <input
                 type="text"
                 placeholder="Rechercher..."
                 value={clientSearch}
                 onChange={e => { setClientSearch(e.target.value); setClientPage(1); }}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-xs w-44 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
-              <span className="text-xs text-gray-500">{clientData.total} clients</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Lignes/page:</span>
+                {[100, 250, 500].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => { setClientLimit(n); setClientPage(1); }}
+                    className={`px-2 py-1 text-xs rounded-md border transition-colors ${clientLimit === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-gray-500 font-medium">{clientData.total.toLocaleString('fr-FR')} clients</span>
             </div>
           </div>
         </CardHeader>
@@ -1751,9 +1765,61 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                     </TableRow>
                   </TableBody>
                 </Table>
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between py-3 gap-3">
                   <Button variant="outline" size="sm" onClick={() => setClientPage(p => Math.max(1, p - 1))} disabled={clientPage <= 1}>Précédent</Button>
-                  <span className="text-xs text-gray-500">Page {clientPage} / {clientData.totalPages}</span>
+                  <div className="flex items-center gap-1 flex-wrap justify-center">
+                    {(() => {
+                      const tp = clientData.totalPages;
+                      const cp = clientPage;
+                      const pages: number[] = [];
+                      if (tp <= 9) {
+                        for (let i = 1; i <= tp; i++) pages.push(i);
+                      } else {
+                        pages.push(1);
+                        if (cp > 4) pages.push(-1); // ellipsis
+                        const start = Math.max(2, cp - 2);
+                        const end = Math.min(tp - 1, cp + 2);
+                        for (let i = start; i <= end; i++) pages.push(i);
+                        if (cp < tp - 3) pages.push(-1); // ellipsis
+                        pages.push(tp);
+                      }
+                      return pages.map((p, i) =>
+                        p === -1 ? (
+                          <span key={`e${i}`} className="px-1 text-xs text-gray-400">…</span>
+                        ) : (
+                          <button
+                            key={p}
+                            onClick={() => setClientPage(p)}
+                            className={`min-w-[28px] h-7 text-xs rounded-md border transition-colors ${p === cp ? 'bg-indigo-600 text-white border-indigo-600 font-semibold' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      );
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Aller à:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={clientData.totalPages}
+                      value={clientJumpPage}
+                      onChange={e => setClientJumpPage(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const n = parseInt(clientJumpPage);
+                          if (n >= 1 && n <= clientData.totalPages) { setClientPage(n); setClientJumpPage(''); }
+                        }
+                      }}
+                      placeholder="n°"
+                      className="border border-gray-300 rounded-md px-2 py-1 text-xs w-14 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const n = parseInt(clientJumpPage);
+                      if (n >= 1 && n <= clientData.totalPages) { setClientPage(n); setClientJumpPage(''); }
+                    }}>OK</Button>
+                  </div>
                   <Button variant="outline" size="sm" onClick={() => setClientPage(p => Math.min(clientData.totalPages, p + 1))} disabled={clientPage >= clientData.totalPages}>Suivant</Button>
                 </div>
               </>
