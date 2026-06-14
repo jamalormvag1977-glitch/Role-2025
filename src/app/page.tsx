@@ -1621,7 +1621,6 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
             {loadingClients ? (
               <div className="flex items-center justify-center py-10">
                 <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
@@ -1686,7 +1685,6 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
                 </div>
               </>
             )}
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
