@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Sprout, MapPin, Droplets, DollarSign,
   Upload, RefreshCw, ChevronDown, Filter, FileSpreadsheet,
-  TrendingUp, Users, Zap, Menu, Building2, UserCheck, GitMerge
+  TrendingUp, Users, Zap, Menu, Building2, UserCheck, GitMerge, Check, X
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -102,9 +102,9 @@ const NAV_ITEMS = [
 
 interface FilterState {
   agr: string;
-  secteur: string;
+  secteur: string[];
   source: string;
-  cult: string;
+  cult: string[];
   campagne: string;
   semestre: string;
 }
@@ -126,6 +126,111 @@ interface FilteredData {
 
 // Filtering is now done server-side via /api/data?agr=...&secteur=...
 // No need for client-side computeFiltered anymore
+
+// --- Multi-Select Filter Component ---
+function MultiSelectFilter({
+  label,
+  allLabel,
+  options,
+  selected,
+  onSelectionChange,
+}: {
+  label: string;
+  allLabel: string;
+  options: string[];
+  selected: string[];
+  onSelectionChange: (values: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const allSelected = selected.length === 0;
+  const displayText = allSelected
+    ? allLabel
+    : selected.length === 1
+      ? selected[0]
+      : `${selected.length} ${label}s`;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-gray-300 bg-white text-xs hover:bg-gray-50 transition-colors min-w-[140px] justify-between"
+        >
+          <span className={`truncate ${allSelected ? 'text-gray-500' : 'text-indigo-700 font-medium'}`}>{displayText}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-0" align="start">
+        <div className="p-2 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <button
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              onClick={() => onSelectionChange([])}
+            >
+              Tout sélectionner
+            </button>
+            <button
+              className="text-xs text-gray-400 hover:text-gray-600"
+              onClick={() => onSelectionChange(options)}
+            >
+              Tout déselectionner
+            </button>
+          </div>
+        </div>
+        <div className="max-h-64 overflow-y-auto p-1">
+          {options.map(option => {
+            const isSelected = allSelected || selected.includes(option);
+            return (
+              <label
+                key={option}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer text-xs"
+                onClick={e => {
+                  e.preventDefault();
+                  if (allSelected) {
+                    // If all selected, deselecting one = select all except this one
+                    onSelectionChange(options.filter(o => o !== option));
+                  } else if (selected.includes(option)) {
+                    const next = selected.filter(s => s !== option);
+                    onSelectionChange(next);
+                  } else {
+                    const next = [...selected, option];
+                    // If all options are now selected, treat as "all"
+                    if (next.length === options.length) {
+                      onSelectionChange([]);
+                    } else {
+                      onSelectionChange(next);
+                    }
+                  }
+                }}
+              >
+                <div className={`flex items-center justify-center h-4 w-4 rounded border flex-shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
+                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                </div>
+                <span className="truncate">{option}</span>
+              </label>
+            );
+          })}
+        </div>
+        {selected.length > 0 && (
+          <div className="p-2 border-t border-gray-100 flex flex-wrap gap-1">
+            {selected.map(s => (
+              <span key={s} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-medium">
+                {s}
+                <X
+                  className="h-2.5 w-2.5 cursor-pointer hover:text-indigo-900"
+                  onClick={e => {
+                    e.stopPropagation();
+                    const next = selected.filter(v => v !== s);
+                    onSelectionChange(next);
+                  }}
+                />
+              </span>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // --- Extracted Components (outside render) ---
 
@@ -218,10 +323,11 @@ function SidebarComponent({
   );
 }
 
-function FilterBarComponent({ filters, data, updateFilter, resetFilters }: {
+function FilterBarComponent({ filters, data, updateFilter, updateMultiFilter, resetFilters }: {
   filters: FilterState;
   data: DashboardData;
   updateFilter: (key: string, value: string) => void;
+  updateMultiFilter: (key: 'secteur' | 'cult', values: string[]) => void;
   resetFilters: () => void;
 }) {
   return (
@@ -237,13 +343,13 @@ function FilterBarComponent({ filters, data, updateFilter, resetFilters }: {
           {data.filters.agr.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Select value={filters.secteur} onValueChange={v => updateFilter('secteur', v)}>
-        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Secteur" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tous Secteurs</SelectItem>
-          {data.filters.secteur.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <MultiSelectFilter
+        label="Secteur"
+        allLabel="Tous Secteurs"
+        options={data.filters.secteur}
+        selected={filters.secteur}
+        onSelectionChange={v => updateMultiFilter('secteur', v)}
+      />
       <Select value={filters.source} onValueChange={v => updateFilter('source', v)}>
         <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Source" /></SelectTrigger>
         <SelectContent>
@@ -251,13 +357,13 @@ function FilterBarComponent({ filters, data, updateFilter, resetFilters }: {
           {data.filters.source.map(s => <SelectItem key={s} value={s}>{s === 'R' ? 'Surface (R)' : s === 'PP' ? 'Pompage (PP)' : s}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Select value={filters.cult} onValueChange={v => updateFilter('cult', v)}>
-        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Culture" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Toutes Cultures</SelectItem>
-          {data.filters.cult.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <MultiSelectFilter
+        label="Culture"
+        allLabel="Toutes Cultures"
+        options={data.filters.cult}
+        selected={filters.cult}
+        onSelectionChange={v => updateMultiFilter('cult', v)}
+      />
       <Select value={filters.semestre} onValueChange={v => updateFilter('semestre', v)}>
         <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Semestre" /></SelectTrigger>
         <SelectContent>
@@ -1589,9 +1695,9 @@ function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; c
     const params = new URLSearchParams({ page: String(clientPage), limit: String(clientLimit), search: clientSearch });
     // Pass global filters to the clients API
     if (globalFilters.agr !== 'all') params.set('agr', globalFilters.agr);
-    if (globalFilters.secteur !== 'all') params.set('secteur', globalFilters.secteur);
+    if (globalFilters.secteur.length > 0) params.set('secteur', globalFilters.secteur.join(','));
     if (globalFilters.source !== 'all') params.set('source', globalFilters.source);
-    if (globalFilters.cult !== 'all') params.set('cult', globalFilters.cult);
+    if (globalFilters.cult.length > 0) params.set('cult', globalFilters.cult.join(','));
     fetch(`/api/clients?${params}`)
       .then(r => r.json())
       .then(d => { setClientData(d); setLoadingClients(false); })
@@ -2005,7 +2111,7 @@ export default function DashboardPage() {
   const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   const [filters, setFilters] = useState<FilterState>({
-    agr: 'all', secteur: 'all', source: 'all', cult: 'all', campagne: 'all', semestre: 'all',
+    agr: 'all', secteur: [], source: 'all', cult: [], campagne: 'all', semestre: 'all',
   });
 
   const fetchFilteredData = useCallback(async (currentFilters: FilterState) => {
@@ -2013,9 +2119,9 @@ export default function DashboardPage() {
     try {
       const params = new URLSearchParams();
       if (currentFilters.agr !== 'all') params.set('agr', currentFilters.agr);
-      if (currentFilters.secteur !== 'all') params.set('secteur', currentFilters.secteur);
+      if (currentFilters.secteur.length > 0) params.set('secteur', currentFilters.secteur.join(','));
       if (currentFilters.source !== 'all') params.set('source', currentFilters.source);
-      if (currentFilters.cult !== 'all') params.set('cult', currentFilters.cult);
+      if (currentFilters.cult.length > 0) params.set('cult', currentFilters.cult.join(','));
       if (currentFilters.campagne !== 'all') params.set('campagne', currentFilters.campagne);
       if (currentFilters.semestre !== 'all') params.set('semestre', currentFilters.semestre);
       const qs = params.toString();
@@ -2067,8 +2173,12 @@ export default function DashboardPage() {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  const updateMultiFilter = useCallback((key: 'secteur' | 'cult', values: string[]) => {
+    setFilters(prev => ({ ...prev, [key]: values }));
+  }, []);
+
   const resetFilters = useCallback(() => {
-    setFilters({ agr: 'all', secteur: 'all', source: 'all', cult: 'all', campagne: 'all', semestre: 'all' });
+    setFilters({ agr: 'all', secteur: [], source: 'all', cult: [], campagne: 'all', semestre: 'all' });
   }, []);
 
   const handleSidebarUploadClick = useCallback(() => {
@@ -2177,7 +2287,7 @@ export default function DashboardPage() {
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <div className="space-y-6">
-            <FilterBarComponent filters={filters} data={{ filters: filtersData } as DashboardData} updateFilter={updateFilter} resetFilters={resetFilters} />
+            <FilterBarComponent filters={filters} data={{ filters: filtersData } as DashboardData} updateFilter={updateFilter} updateMultiFilter={updateMultiFilter} resetFilters={resetFilters} />
             {renderSection()}
           </div>
         </main>

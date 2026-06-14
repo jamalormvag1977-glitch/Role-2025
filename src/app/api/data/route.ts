@@ -185,9 +185,15 @@ export async function GET(request: Request) {
 
     let filtered = cachedData.rows;
     if (agr) filtered = filtered.filter((r: any) => r.AGR === agr);
-    if (secteur) filtered = filtered.filter((r: any) => r.SECTEUR === secteur);
+    if (secteur) {
+      const secteurs = secteur.split(',');
+      filtered = filtered.filter((r: any) => secteurs.includes(r.SECTEUR));
+    }
     if (source) filtered = filtered.filter((r: any) => r.SOURCE === source);
-    if (cult) filtered = filtered.filter((r: any) => r.CULT === cult);
+    if (cult) {
+      const cults = cult.split(',');
+      filtered = filtered.filter((r: any) => cults.includes(r.CULT));
+    }
     if (campagne) filtered = filtered.filter((r: any) => r.CAMPAGNE === campagne);
     if (semestre) filtered = filtered.filter((r: any) => r.SEMESTRE === semestre);
 

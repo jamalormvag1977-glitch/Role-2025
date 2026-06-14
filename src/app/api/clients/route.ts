@@ -72,13 +72,15 @@ export async function GET(request: Request) {
       filtered = filtered.filter((c: any) => c.agr === agr);
     }
     if (secteur && secteur !== 'all') {
-      filtered = filtered.filter((c: any) => c.secteur === secteur);
+      const secteurs = secteur.split(',');
+      filtered = filtered.filter((c: any) => secteurs.includes(c.secteur));
     }
     if (source && source !== 'all') {
       filtered = filtered.filter((c: any) => c.source === source);
     }
     if (cult && cult !== 'all') {
-      filtered = filtered.filter((c: any) => c.cult === cult);
+      const cults = cult.split(',');
+      filtered = filtered.filter((c: any) => cults.includes(c.cult));
     }
 
     // Apply text search
