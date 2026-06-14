@@ -519,9 +519,10 @@ function AGRSection({ fd }: { fd: FilteredData }) {
                 </div>
               </div>
               <div className="space-y-2 text-xs">
-                <div className="flex justify-between"><span className="text-gray-500">Vol. Consommé</span><span className="font-semibold">{formatNumber(v.volConsom)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Vol. Facturé</span><span className="font-semibold">{formatNumber(v.volFact)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-semibold text-emerald-600">{formatCurrency(v.redevTot)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Nb Clients</span><span className="font-semibold text-indigo-600">{formatFullNumber(v.clientCount || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Redev. Culture</span><span className="font-semibold text-emerald-600">{formatCurrency(v.redevCult)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Redev. DPH</span><span className="font-semibold text-blue-600">{formatCurrency(v.redevDph)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Redev. Totale</span><span className="font-semibold text-gray-800">{formatCurrency(v.redevTot)}</span></div>
               </div>
             </CardContent>
           </Card>
