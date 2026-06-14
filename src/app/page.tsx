@@ -95,6 +95,7 @@ const NAV_ITEMS = [
   { id: 'secteur', label: 'Analyse par Secteur', icon: MapPin },
   { id: 'source', label: 'Analyse par Source', icon: Droplets },
   { id: 'finance', label: 'Analyse Financière', icon: DollarSign },
+  { id: 'recovery', label: 'Analyse Recouvrement', icon: TrendingUp },
   { id: 'cross', label: 'Analyse Croisée', icon: GitMerge },
   { id: 'client', label: 'Analyse par Client', icon: UserCheck },
   { id: 'cda', label: 'Analyse par CDA', icon: Building2 },
@@ -1660,6 +1661,299 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
   );
 }
 
+function RecoverySection() {
+  const [recoveryData, setRecoveryData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'agr' | 'cda'>('agr');
+
+  React.useEffect(() => {
+    setLoading(true);
+    fetch('/api/recovery')
+      .then(r => r.json())
+      .then(d => { setRecoveryData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading || !recoveryData) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  const t = recoveryData.totals;
+  const byAGR = recoveryData.byAGR;
+  const byCDA = recoveryData.byCDA;
+
+  // Chart data for AGR recovery rates
+  const agrChartData = Object.entries(byAGR).map(([name, v]: [string, any]) => ({
+    name,
+    'Taux Recouvrement': parseFloat(v.tauxTotal.toFixed(1)),
+    'Taux Culture': parseFloat(v.tauxCult.toFixed(1)),
+    'Taux DPH': parseFloat(v.tauxDph.toFixed(1)),
+  }));
+
+  // Chart data for amounts comparison
+  const agrAmountData = Object.entries(byAGR).map(([name, v]: [string, any]) => ({
+    name,
+    'Redev. Globale': Math.round(v.globalTotal),
+    'Dettes Restantes': Math.round(v.restTotal),
+    'Recouvrement': Math.round(v.recovTotal),
+  }));
+
+  // CDA chart data
+  const cdaChartData = Object.entries(byCDA)
+    .sort(([,a]: [string, any],[,b]: [string, any]) => (b as any).tauxTotal - (a as any).tauxTotal)
+    .slice(0, 15)
+    .map(([name, v]: [string, any]) => ({
+      name: `CDA ${name}`,
+      'Taux Recouvrement': parseFloat(v.tauxTotal.toFixed(1)),
+    }));
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-md border-l-4 border-l-indigo-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Dettes Globales 2025</p>
+            <p className="text-2xl font-bold text-indigo-700 mt-1">{formatCurrency(t.globalTotal)}</p>
+            <p className="text-xs text-gray-400 mt-1">Redevances totales</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-amber-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Dettes Restantes</p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{formatCurrency(t.restTotal)}</p>
+            <p className="text-xs text-gray-400 mt-1">Au {recoveryData.dateRef}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-emerald-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Recouvrement R&eacute;alis&eacute;</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(t.recovTotal)}</p>
+            <p className="text-xs text-gray-400 mt-1">Janvier - Juin 2026</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-blue-500">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium text-gray-500 uppercase">Taux de Recouvrement</p>
+            <p className="text-2xl font-bold text-blue-700 mt-1">{t.tauxTotal.toFixed(1)}%</p>
+            <p className="text-xs text-gray-400 mt-1">Global</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed KPI breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="shadow-md border-l-4 border-l-emerald-400">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase">Taux Culture</p>
+                <p className="text-xl font-bold text-emerald-700">{t.tauxCult.toFixed(1)}%</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400">Recouvr&eacute;: {formatCurrency(t.recovCult)}</p>
+                <p className="text-[10px] text-gray-400">Restant: {formatCurrency(t.restCult)}</p>
+              </div>
+            </div>
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${Math.min(t.tauxCult, 100)}%` }}></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md border-l-4 border-l-blue-400">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase">Taux DPH</p>
+                <p className="text-xl font-bold text-blue-700">{t.tauxDph.toFixed(1)}%</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400">Recouvr&eacute;: {formatCurrency(t.recovDph)}</p>
+                <p className="text-[10px] text-gray-400">Restant: {formatCurrency(t.restDph)}</p>
+              </div>
+            </div>
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${Math.min(t.tauxDph, 100)}%` }}></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Comparaison Dettes Globales vs Restantes par AGR</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={agrAmountData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={v => formatNumber(v)} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Legend />
+                <Bar dataKey="Redev. Globale" fill="#6366f1" radius={[4,4,0,0]} />
+                <Bar dataKey="Recouvrement" fill="#10b981" radius={[4,4,0,0]} />
+                <Bar dataKey="Dettes Restantes" fill="#f59e0b" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Taux de Recouvrement par AGR (%)</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={agrChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} />
+                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Legend />
+                <Bar dataKey="Taux Culture" fill="#10b981" radius={[4,4,0,0]} />
+                <Bar dataKey="Taux DPH" fill="#3b82f6" radius={[4,4,0,0]} />
+                <Bar dataKey="Taux Recouvrement" fill="#6366f1" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* CDA Recovery Chart */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold text-gray-800">Taux de Recouvrement par CDA (Top 15)</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={cdaChartData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Bar dataKey="Taux Recouvrement" fill="#6366f1" radius={[0,4,4,0]} label={({ value }) => `${value}%`} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Table: Vue par AGR */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-gray-800">Tableau Recouvrement par AGR</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table className="dash-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>AGR</TableHead>
+                <TableHead className="text-right">Redev. Globale</TableHead>
+                <TableHead className="text-right">Dettes Rest.</TableHead>
+                <TableHead className="text-right">Recouvrement</TableHead>
+                <TableHead className="text-right">Taux Recov.</TableHead>
+                <TableHead className="text-right">Cult. Glob.</TableHead>
+                <TableHead className="text-right">Cult. Rest.</TableHead>
+                <TableHead className="text-right">Cult. Recov.</TableHead>
+                <TableHead className="text-right">% Cult.</TableHead>
+                <TableHead className="text-right">DPH Glob.</TableHead>
+                <TableHead className="text-right">DPH Rest.</TableHead>
+                <TableHead className="text-right">DPH Recov.</TableHead>
+                <TableHead className="text-right">% DPH</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(byAGR).sort(([,a]: [string, any],[,b]: [string, any]) => (b as any).globalTotal - (a as any).globalTotal).map(([agr, v]: [string, any]) => (
+                <TableRow key={agr}>
+                  <TableCell className="font-semibold">{agr}</TableCell>
+                  <TableCell className="text-right"><span className="val-client">{formatCurrency(v.globalTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className="val-culture">{formatCurrency(v.restTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className="val-total">{formatCurrency(v.recovTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className={`pct-cell ${v.tauxTotal >= 50 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{v.tauxTotal.toFixed(1)}%</span></TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.globalCult)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.restCult)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.recovCult)}</TableCell>
+                  <TableCell className="text-right"><span className="pct-cell">{v.tauxCult.toFixed(1)}%</span></TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.globalDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.restDph)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(v.recovDph)}</TableCell>
+                  <TableCell className="text-right"><span className="pct-cell">{v.tauxDph.toFixed(1)}%</span></TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="total-row">
+                <TableCell>Total</TableCell>
+                <TableCell className="text-right"><span className="val-client">{formatCurrency(t.globalTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="val-culture">{formatCurrency(t.restTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="val-total">{formatCurrency(t.recovTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxTotal.toFixed(1)}%</span></TableCell>
+                <TableCell className="text-right">{formatCurrency(t.globalCult)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(t.restCult)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(t.recovCult)}</TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxCult.toFixed(1)}%</span></TableCell>
+                <TableCell className="text-right">{formatCurrency(t.globalDph)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(t.restDph)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(t.recovDph)}</TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxDph.toFixed(1)}%</span></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Table: Vue par CDA */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-gray-800">Tableau Recouvrement par CDA</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table className="dash-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>CDA</TableHead>
+                <TableHead>AGR</TableHead>
+                <TableHead className="text-right">Redev. Globale</TableHead>
+                <TableHead className="text-right">Dettes Rest.</TableHead>
+                <TableHead className="text-right">Recouvrement</TableHead>
+                <TableHead className="text-right">Taux Recov.</TableHead>
+                <TableHead className="text-right">% Cult.</TableHead>
+                <TableHead className="text-right">% DPH</TableHead>
+                <TableHead className="text-right">Nb Clients Rest.</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(byCDA).sort(([,a]: [string, any],[,b]: [string, any]) => (b as any).globalTotal - (a as any).globalTotal).map(([cda, v]: [string, any]) => (
+                <TableRow key={cda}>
+                  <TableCell className="font-semibold">{cda}</TableCell>
+                  <TableCell>{v.agr}</TableCell>
+                  <TableCell className="text-right"><span className="val-client">{formatCurrency(v.globalTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className="val-culture">{formatCurrency(v.restTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className="val-total">{formatCurrency(v.recovTotal)}</span></TableCell>
+                  <TableCell className="text-right"><span className={`pct-cell ${v.tauxTotal >= 50 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{v.tauxTotal.toFixed(1)}%</span></TableCell>
+                  <TableCell className="text-right"><span className="pct-cell">{v.tauxCult.toFixed(1)}%</span></TableCell>
+                  <TableCell className="text-right"><span className="pct-cell">{v.tauxDph.toFixed(1)}%</span></TableCell>
+                  <TableCell className="text-right">{v.restClientCount}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="total-row">
+                <TableCell>Total</TableCell>
+                <TableCell></TableCell>
+                <TableCell className="text-right"><span className="val-client">{formatCurrency(t.globalTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="val-culture">{formatCurrency(t.restTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="val-total">{formatCurrency(t.recovTotal)}</span></TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxTotal.toFixed(1)}%</span></TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxCult.toFixed(1)}%</span></TableCell>
+                <TableCell className="text-right"><span className="pct-cell">{t.tauxDph.toFixed(1)}%</span></TableCell>
+                <TableCell className="text-right"></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function ClientSection({ fd, clientStats, globalFilters }: { fd: FilteredData; clientStats: { totalClientCount: number; totalClientRedevTot: number; top10ClientRedev: number; concentrationPct: string }; globalFilters: FilterState }) {
   const clientEntries = Object.entries(fd.byClient)
     .map(([id, v]: [string, any]) => ({ id, ...v }))
@@ -2208,6 +2502,7 @@ export default function DashboardPage() {
       case 'secteur': return <SecteurSection fd={fd} />;
       case 'source': return <SourceSection fd={fd} />;
       case 'finance': return <FinanceSection fd={fd} />;
+      case 'recovery': return <RecoverySection />;
       case 'cross': return <CrossAnalysisSection fd={fd} />;
       case 'client': return <ClientSection fd={fd} clientStats={fd.clientStats || { totalClientCount: 0, totalClientRedevTot: 0, top10ClientRedev: 0, concentrationPct: '0' }} globalFilters={filters} />;
       case 'cda': return <CDASection fd={fd} />;
