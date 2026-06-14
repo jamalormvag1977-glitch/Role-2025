@@ -300,7 +300,7 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-blue-600 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -329,7 +329,49 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre de Clients</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatFullNumber(fd.clientStats?.totalClientCount || 0)}</p>
+                <p className="text-xs text-gray-400 mt-1">clients</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <Users className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-l-4 border-l-emerald-500 shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Redev. Culture</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(fd.summary.totalRedevCult)}</p>
+                <p className="text-xs text-gray-400 mt-1">Dirhams</p>
+              </div>
+              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+                <Sprout className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Redev. DPH</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(fd.summary.totalRedevDph)}</p>
+                <p className="text-xs text-gray-400 mt-1">Dirhams</p>
+              </div>
+              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <Droplets className="h-6 w-6 text-indigo-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-teal-500 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -337,22 +379,8 @@ function OverviewSection({ fd }: { fd: FilteredData }) {
                 <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(fd.summary.totalRedevTot)}</p>
                 <p className="text-xs text-gray-400 mt-1">Dirhams</p>
               </div>
-              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre de Clients</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{formatFullNumber(fd.summary.totalRows)}</p>
-                <p className="text-xs text-gray-400 mt-1">enregistrements</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                <Users className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-teal-600" />
               </div>
             </div>
           </CardContent>
