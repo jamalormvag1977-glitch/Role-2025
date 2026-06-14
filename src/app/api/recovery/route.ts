@@ -110,9 +110,8 @@ function parseDettesBuffer(buffer: Buffer) {
 }
 
 async function getDettesData() {
+  // Strategy 1: Try Vercel Blob (production)
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-
-  // Try Vercel Blob first (production)
   if (blobToken) {
     const buffer = await fetchDettesFromBlob();
     if (buffer) {
@@ -120,7 +119,22 @@ async function getDettesData() {
     }
   }
 
-  // Try local filesystem (development)
+  // Strategy 2: Try fetching from public URL (works on Vercel - file in public/)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) {
+    try {
+      const protocol = vercelUrl.startsWith('http') ? '' : 'https://';
+      const response = await fetch(`${protocol}${vercelUrl}/dettes-encours.xlsx`);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        return parseDettesBuffer(Buffer.from(arrayBuffer));
+      }
+    } catch {
+      // fetch failed, try next strategy
+    }
+  }
+
+  // Strategy 3: Try local filesystem (development / bundled data)
   const filePath = findLocalDettesFile();
   if (filePath) {
     const buffer = readFileSync(filePath);
