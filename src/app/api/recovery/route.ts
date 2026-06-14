@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { parseExcel, parseExcelSync } from '@/lib/parse-excel';
 import { isCacheInvalidated, markCacheFresh } from '@/lib/cache';
 import * as XLSX from 'xlsx';
+import { readFileSync } from 'fs';
 import path from 'path';
 
 // CDA -> AGR mapping
@@ -15,9 +16,43 @@ const CDA_TO_AGR: Record<string, string> = {
   '237': 'SOUK EL ARBAA',
 };
 
-function parseDettesEncours() {
-  const filePath = path.join(process.cwd(), 'upload', 'dettes 2025 ENCOURS.xlsx');
-  const wb = XLSX.readFile(filePath);
+const DETTES_BLOB_KEY = 'dashboard/dettes-encours.xlsx';
+
+async function fetchDettesFromBlob(): Promise<Buffer | null> {
+  try {
+    const { head } = await import('@vercel/blob');
+    const blobInfo = await head(DETTES_BLOB_KEY);
+    if (!blobInfo) return null;
+
+    const response = await fetch(blobInfo.url);
+    if (!response.ok) return null;
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch {
+    return null;
+  }
+}
+
+function findLocalDettesFile(): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require('fs');
+  const uploadDir = path.join(process.cwd(), 'upload');
+  try {
+    const files = fs.readdirSync(uploadDir) as string[];
+    const match = files.find((f: string) => f.toLowerCase().includes('encours') || f.toLowerCase().includes('dettes'));
+    if (match) return path.join(uploadDir, match);
+    // Fallback: any xlsx
+    const xlsxMatch = files.find((f: string) => f.endsWith('.xlsx'));
+    if (xlsxMatch) return path.join(uploadDir, xlsxMatch);
+  } catch {
+    // directory doesn't exist
+  }
+  return null;
+}
+
+function parseDettesBuffer(buffer: Buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
@@ -68,6 +103,27 @@ function parseDettesEncours() {
   return { byCDA, byAGR, totalCult, totalDph, totalAll };
 }
 
+async function getDettesData() {
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  // Try Vercel Blob first (production)
+  if (blobToken) {
+    const buffer = await fetchDettesFromBlob();
+    if (buffer) {
+      return parseDettesBuffer(buffer);
+    }
+  }
+
+  // Try local filesystem (development)
+  const filePath = findLocalDettesFile();
+  if (filePath) {
+    const buffer = readFileSync(filePath);
+    return parseDettesBuffer(buffer);
+  }
+
+  return null;
+}
+
 let cachedRecovery: any = null;
 
 export async function GET() {
@@ -79,6 +135,16 @@ export async function GET() {
         mainData = await parseExcel();
       } catch {
         mainData = parseExcelSync();
+      }
+
+      // Get dettes encours data
+      const dettes = await getDettesData();
+
+      if (!dettes) {
+        return NextResponse.json({ 
+          error: 'Fichier des dettes restantes non trouvé. Veuillez charger le fichier "dettes 2025 ENCOURS.xlsx" via le bouton Charger Excel.',
+          hasDettesFile: false 
+        }, { status: 404 });
       }
 
       // Aggregate redevances by AGR from main data
@@ -101,9 +167,6 @@ export async function GET() {
       for (const agr of Object.keys(redevByAGR)) {
         redevByAGR[agr].clientCount = clientsPerAGRMain[agr]?.size || 0;
       }
-
-      // Parse dettes encours
-      const dettes = parseDettesEncours();
 
       // Compute recovery = global - remaining
       const recoveryByAGR: Record<string, any> = {};

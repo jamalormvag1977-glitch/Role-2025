@@ -1664,20 +1664,50 @@ function CrossAnalysisSection({ fd }: { fd: FilteredData }) {
 function RecoverySection() {
   const [recoveryData, setRecoveryData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'agr' | 'cda'>('agr');
+  const [error, setError] = useState<string>('');
 
   React.useEffect(() => {
     setLoading(true);
+    setError('');
     fetch('/api/recovery')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Erreur serveur'); });
+        return r.json();
+      })
       .then(d => { setRecoveryData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(err => { setError(err.message || 'Erreur de chargement'); setLoading(false); });
   }, []);
 
-  if (loading || !recoveryData) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (error || !recoveryData || recoveryData.error) {
+    return (
+      <div className="space-y-6">
+        <Card className="shadow-md">
+          <CardContent className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                <FileSpreadsheet className="h-8 w-8 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">Fichier des dettes restantes requis</h3>
+                <p className="text-sm text-gray-500 mt-2 max-w-md">
+                  {error || recoveryData?.error || 'Le fichier "dettes 2025 ENCOURS.xlsx" est nécessaire pour afficher l\'analyse de recouvrement. Veuillez le charger via le bouton "Charger Excel".'}
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => setLoading(true)}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Réessayer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
