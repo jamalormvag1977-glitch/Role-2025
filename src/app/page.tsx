@@ -142,75 +142,66 @@ function MultiSelectFilter({
   onSelectionChange: (values: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const allSelected = selected.length === 0;
-  const displayText = allSelected
+  const isFiltered = selected.length > 0;
+  const displayText = !isFiltered
     ? allLabel
     : selected.length === 1
       ? selected[0]
       : `${selected.length} ${label}s`;
 
+  const toggleOption = (option: string) => {
+    if (selected.includes(option)) {
+      onSelectionChange(selected.filter(s => s !== option));
+    } else {
+      onSelectionChange([...selected, option]);
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-gray-300 bg-white text-xs hover:bg-gray-50 transition-colors min-w-[140px] justify-between"
+          className={`flex items-center gap-1.5 h-8 px-3 rounded-md border transition-colors min-w-[140px] justify-between ${isFiltered ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'}`}
         >
-          <span className={`truncate ${allSelected ? 'text-gray-500' : 'text-indigo-700 font-medium'}`}>{displayText}</span>
-          <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+          <span className="truncate text-xs font-medium">{displayText}</span>
+          <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-60" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
-        <div className="p-2 border-b border-gray-100">
-          <div className="flex items-center justify-between">
+      <PopoverContent className="w-60 p-0" align="start">
+        <div className="p-2 border-b border-gray-100 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">
+            {isFiltered ? `${selected.length} sélectionné${selected.length > 1 ? 's' : ''}` : 'Cliquez pour filtrer'}
+          </span>
+          {isFiltered && (
             <button
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              className="text-[11px] text-red-500 hover:text-red-700 font-medium"
               onClick={() => onSelectionChange([])}
             >
-              Tout sélectionner
+              Effacer tout
             </button>
-            <button
-              className="text-xs text-gray-400 hover:text-gray-600"
-              onClick={() => onSelectionChange(options)}
-            >
-              Tout déselectionner
-            </button>
-          </div>
+          )}
         </div>
         <div className="max-h-64 overflow-y-auto p-1">
           {options.map(option => {
-            const isSelected = allSelected || selected.includes(option);
+            const isChecked = selected.includes(option);
             return (
               <label
                 key={option}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer text-xs"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer text-xs select-none"
                 onClick={e => {
                   e.preventDefault();
-                  if (allSelected) {
-                    // If all selected, deselecting one = select all except this one
-                    onSelectionChange(options.filter(o => o !== option));
-                  } else if (selected.includes(option)) {
-                    const next = selected.filter(s => s !== option);
-                    onSelectionChange(next);
-                  } else {
-                    const next = [...selected, option];
-                    // If all options are now selected, treat as "all"
-                    if (next.length === options.length) {
-                      onSelectionChange([]);
-                    } else {
-                      onSelectionChange(next);
-                    }
-                  }
+                  toggleOption(option);
                 }}
               >
-                <div className={`flex items-center justify-center h-4 w-4 rounded border flex-shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
-                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                <div className={`flex items-center justify-center h-4 w-4 rounded border flex-shrink-0 transition-colors ${isChecked ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
+                  {isChecked && <Check className="h-3 w-3 text-white" />}
                 </div>
                 <span className="truncate">{option}</span>
               </label>
             );
           })}
         </div>
-        {selected.length > 0 && (
+        {isFiltered && (
           <div className="p-2 border-t border-gray-100 flex flex-wrap gap-1">
             {selected.map(s => (
               <span key={s} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-medium">
@@ -219,8 +210,7 @@ function MultiSelectFilter({
                   className="h-2.5 w-2.5 cursor-pointer hover:text-indigo-900"
                   onClick={e => {
                     e.stopPropagation();
-                    const next = selected.filter(v => v !== s);
-                    onSelectionChange(next);
+                    toggleOption(s);
                   }}
                 />
               </span>
